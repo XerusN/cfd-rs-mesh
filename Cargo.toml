@@ -7,3 +7,5 @@ description = "An helper lib for cfd-rs, used to compute and import meshes (WIP)
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+cfd-rs-utils = { path = "../cfd-rs-utils" }
+nalgebra = "0.33.1"
