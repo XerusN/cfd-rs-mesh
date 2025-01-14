@@ -16,7 +16,7 @@ pub struct NormalizedSpace {
 
 pub trait SpaceNormalize {
     fn normalize(&mut self, normalized_space: NormalizedSpace);
-    
+
     fn denormalize(&mut self, normalized_space: NormalizedSpace);
 }
 
@@ -24,7 +24,7 @@ impl SpaceNormalize for Point2<f64> {
     fn normalize(&mut self, normalized_space: NormalizedSpace) {
         todo!()
     }
-    
+
     fn denormalize(&mut self, normalized_space: NormalizedSpace) {
         todo!()
     }
@@ -34,7 +34,7 @@ impl SpaceNormalize for Vector2<f64> {
     fn normalize(&mut self, normalized_space: NormalizedSpace) {
         todo!()
     }
-    
+
     fn denormalize(&mut self, normalized_space: NormalizedSpace) {
         todo!()
     }

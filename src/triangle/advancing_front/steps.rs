@@ -13,11 +13,12 @@ mod test;
 
 /// Refines the boundary up to the level specified by the element size.
 pub fn refine_boundary(mesh: &mut Modifiable2DMesh, mesh_size: f64) {
-    let mesh_size_squared = mesh_size*mesh_size;
+    let mesh_size_squared = mesh_size * mesh_size;
     let mut i = 0;
     while i < mesh.0.he_len() {
         while mesh.0.he_vector(HalfEdgeIndex(i)).norm_squared() > mesh_size_squared {
-            mesh.split_edge(HalfEdgeIndex(i), 0.5).expect("Error when refining boundary");
+            mesh.split_edge(HalfEdgeIndex(i), 0.5)
+                .expect("Error when refining boundary");
         }
         i += 1;
     }
@@ -62,8 +63,18 @@ pub fn ideal_node(
     element_size: f64,
 ) -> Option<Point2<f64>> {
     let base_edge = (base_edge, mesh.0.he_vector(base_edge).normalize());
-    let prev_edge = (mesh.0.he_to_prev_he()[base_edge.0], mesh.0.he_vector(mesh.0.he_to_prev_he()[base_edge.0]).normalize());
-    let next_edge = (mesh.0.he_to_next_he()[base_edge.0], mesh.0.he_vector(mesh.0.he_to_next_he()[base_edge.0]).normalize());
+    let prev_edge = (
+        mesh.0.he_to_prev_he()[base_edge.0],
+        mesh.0
+            .he_vector(mesh.0.he_to_prev_he()[base_edge.0])
+            .normalize(),
+    );
+    let next_edge = (
+        mesh.0.he_to_next_he()[base_edge.0],
+        mesh.0
+            .he_vector(mesh.0.he_to_next_he()[base_edge.0])
+            .normalize(),
+    );
     let mut alpha = prev_edge.1.angle(&base_edge.1).abs();
     let mut beta = next_edge.1.angle(&base_edge.1).abs();
     if alpha > beta {
@@ -71,20 +82,24 @@ pub fn ideal_node(
         alpha = beta;
         beta = temp;
     }
-    
-    if alpha < PI*80./180. {
+
+    if alpha < PI * 80. / 180. {
         return None;
     }
-    
-    if (alpha < PI*91./180.) & (alpha > PI*89./180.) {
-        return Some(Point2::new(element_size*(PI/4.).cos(), element_size*(PI/4.).sin()))
+
+    if (alpha < PI * 91. / 180.) & (alpha > PI * 89. / 180.) {
+        return Some(Point2::new(
+            element_size * (PI / 4.).cos(),
+            element_size * (PI / 4.).sin(),
+        ));
     }
-    
-    let phi_a = alpha/(alpha/(PI/3.)).round();
-    let phi_b = beta/(beta/(PI/3.)).round();
-    
-    return Some(Point2::new(phi_a.cos() - phi_b.cos(), phi_a.sin() - phi_b.sin())*element_size/2.);
-    
+
+    let phi_a = alpha / (alpha / (PI / 3.)).round();
+    let phi_b = beta / (beta / (PI / 3.)).round();
+
+    return Some(
+        Point2::new(phi_a.cos() - phi_b.cos(), phi_a.sin() - phi_b.sin()) * element_size / 2.,
+    );
 }
 
 pub fn validity_check(
@@ -102,6 +117,10 @@ pub fn suitability_check(
     element_size: f64,
     considered_point: ConsideredPoint,
 ) -> bool {
+    todo!()
+}
+
+pub fn find_existing_candidates(mesh: &Modifiable2DMesh, base_edge: HalfEdgeIndex, element_size: f64) -> Vec<ConsideredPoint> {
     todo!()
 }
 
