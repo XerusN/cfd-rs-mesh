@@ -1,4 +1,5 @@
-use std::vec;
+use core::f64;
+use std::{f64::consts::PI, vec};
 
 use super::utils::*;
 use cfd_rs_utils::{
@@ -53,12 +54,37 @@ pub fn new_element(
     todo!()
 }
 
+/// Based on J. Frysketig, 1994
+/// Returns a value in the normalized space
 pub fn ideal_node(
     mesh: &Modifiable2DMesh,
     base_edge: HalfEdgeIndex,
     element_size: f64,
 ) -> Option<Point2<f64>> {
-    todo!()
+    let base_edge = (base_edge, mesh.0.he_vector(base_edge).normalize());
+    let prev_edge = (mesh.0.he_to_prev_he()[base_edge.0], mesh.0.he_vector(mesh.0.he_to_prev_he()[base_edge.0]).normalize());
+    let next_edge = (mesh.0.he_to_next_he()[base_edge.0], mesh.0.he_vector(mesh.0.he_to_next_he()[base_edge.0]).normalize());
+    let mut alpha = prev_edge.1.angle(&base_edge.1).abs();
+    let mut beta = next_edge.1.angle(&base_edge.1).abs();
+    if alpha > beta {
+        let temp = alpha;
+        alpha = beta;
+        beta = temp;
+    }
+    
+    if alpha < PI*80./180. {
+        return None;
+    }
+    
+    if (alpha < PI*91./180.) & (alpha > PI*89./180.) {
+        return Some(Point2::new(element_size*(PI/4.).cos(), element_size*(PI/4.).sin()))
+    }
+    
+    let phi_a = alpha/(alpha/(PI/3.)).round();
+    let phi_b = beta/(beta/(PI/3.)).round();
+    
+    return Some(Point2::new(phi_a.cos() - phi_b.cos(), phi_a.sin() - phi_b.sin())*element_size/2.);
+    
 }
 
 pub fn validity_check(

@@ -1,5 +1,5 @@
 use cfd_rs_utils::mesh::indices::*;
-use nalgebra::Point2;
+use nalgebra::{Point2, Vector2};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ConsideredPoint {
@@ -14,8 +14,30 @@ pub struct NormalizedSpace {
     stretch_direction: Point2<f64>,
 }
 
-pub fn normalize(normalized_space: NormalizedSpace, vector: Point2<f64>) -> Point2<f64> {
-    todo!()
+pub trait SpaceNormalize {
+    fn normalize(&mut self, normalized_space: NormalizedSpace);
+    
+    fn denormalize(&mut self, normalized_space: NormalizedSpace);
+}
+
+impl SpaceNormalize for Point2<f64> {
+    fn normalize(&mut self, normalized_space: NormalizedSpace) {
+        todo!()
+    }
+    
+    fn denormalize(&mut self, normalized_space: NormalizedSpace) {
+        todo!()
+    }
+}
+
+impl SpaceNormalize for Vector2<f64> {
+    fn normalize(&mut self, normalized_space: NormalizedSpace) {
+        todo!()
+    }
+    
+    fn denormalize(&mut self, normalized_space: NormalizedSpace) {
+        todo!()
+    }
 }
 
 pub fn triangle_intersect_front(
