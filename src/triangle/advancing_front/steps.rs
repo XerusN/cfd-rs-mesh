@@ -1,5 +1,5 @@
 use core::f64;
-use std::{f64::consts::PI, vec};
+use std::f64::consts::PI;
 
 use super::utils::*;
 use cfd_rs_utils::{
@@ -55,14 +55,15 @@ pub fn new_element(
     todo!()
 }
 
-/// Based on J. Frysketig, 1994
-/// Returns a value in the normalized space
+/// Based on J. Frysketig, 1994.
+/// Returns a value in the normalized space.
 pub fn ideal_node(
     mesh: &Modifiable2DMesh,
     base_edge: HalfEdgeIndex,
     element_size: f64,
 ) -> Option<Point2<f64>> {
-    let base_edge = (base_edge, mesh.0.he_vector(base_edge).normalize());
+    let space_normalization = NormalizedSpace{mesh_size: element_size, stretch_factor: 1., stretch_direction: Point2::default()};
+    let base_edge = (base_edge, mesh.0.he_vector(base_edge).normalize(space_normalization));
     let prev_edge = (
         mesh.0.he_to_prev_he()[base_edge.0],
         mesh.0
@@ -87,7 +88,7 @@ pub fn ideal_node(
         return None;
     }
 
-    if (alpha < PI * 91. / 180.) & (alpha > PI * 89. / 180.) {
+    if (alpha < PI * 91. / 180.) && (alpha > PI * 89. / 180.) {
         return Some(Point2::new(
             element_size * (PI / 4.).cos(),
             element_size * (PI / 4.).sin(),

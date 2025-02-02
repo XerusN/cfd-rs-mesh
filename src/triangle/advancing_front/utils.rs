@@ -9,9 +9,9 @@ pub enum ConsideredPoint {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct NormalizedSpace {
-    mesh_size: f64,
-    stretch_factor: f64,
-    stretch_direction: Point2<f64>,
+    pub mesh_size: f64,
+    pub stretch_factor: f64,
+    pub stretch_direction: Point2<f64>,
 }
 
 pub trait SpaceNormalize {
