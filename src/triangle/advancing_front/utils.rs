@@ -7,35 +7,48 @@ pub enum ConsideredPoint {
     OldPoint(VertexIndex),
 }
 
+/// Space Normalization for isotropic mesh control
 #[derive(Clone, Debug, PartialEq)]
 pub struct NormalizedSpace {
     pub mesh_size: f64,
-    pub stretch_factor: f64,
-    pub stretch_direction: Point2<f64>,
+    pub base_edge: [Point2<f64>; 2],
 }
 
-pub trait SpaceNormalize {
-    fn normalize(&mut self, normalized_space: NormalizedSpace);
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SpaceNormalized<T>(pub T);
 
-    fn denormalize(&mut self, normalized_space: NormalizedSpace);
+pub trait SpaceNormalize {
+    
+    fn to_normalized_space<S>(&self, normalized_space: &NormalizedSpace) -> SpaceNormalized<S>;
+
+    fn from_normalized_space<S>(
+        coordinates: SpaceNormalized<&S>,
+        normalized_space: &NormalizedSpace,
+    ) -> Self;
 }
 
 impl SpaceNormalize for Point2<f64> {
-    fn normalize(&mut self, normalized_space: NormalizedSpace) {
+    fn to_normalized_space<S>(&self, normalized_space: &NormalizedSpace) -> SpaceNormalized<S> {
         todo!()
     }
 
-    fn denormalize(&mut self, normalized_space: NormalizedSpace) {
+    fn from_normalized_space<S>(
+        coordinates: SpaceNormalized<&S>,
+        normalized_space: &NormalizedSpace,
+    ) -> Self {
         todo!()
     }
 }
 
 impl SpaceNormalize for Vector2<f64> {
-    fn normalize(&mut self, normalized_space: NormalizedSpace) {
+    fn to_normalized_space<S>(&self, normalized_space: &NormalizedSpace) -> SpaceNormalized<S> {
         todo!()
     }
 
-    fn denormalize(&mut self, normalized_space: NormalizedSpace) {
+    fn from_normalized_space<S>(
+        coordinates: SpaceNormalized<&S>,
+        normalized_space: &NormalizedSpace,
+    ) -> Self {
         todo!()
     }
 }

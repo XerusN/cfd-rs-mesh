@@ -6,7 +6,7 @@ use cfd_rs_utils::{
     errors::MeshError,
     mesh::{indices::*, Modifiable2DMesh},
 };
-use nalgebra::Point2;
+use nalgebra::{Point2, Vector2};
 
 #[cfg(test)]
 mod test;
@@ -59,25 +59,33 @@ pub fn new_element(
 /// Returns a value in the normalized space.
 pub fn ideal_node(
     mesh: &Modifiable2DMesh,
-    base_edge: HalfEdgeIndex,
+    base_edge_id: HalfEdgeIndex,
     element_size: f64,
 ) -> Option<Point2<f64>> {
-    let space_normalization = NormalizedSpace{mesh_size: element_size, stretch_factor: 1., stretch_direction: Point2::default()};
-    let base_edge = (base_edge, mesh.0.he_vector(base_edge).normalize(space_normalization));
-    let prev_edge = (
-        mesh.0.he_to_prev_he()[base_edge.0],
+    let base_edge = mesh.0.vertices_from_he(base_edge_id);
+    let base_edge = [mesh.0.vertices(base_edge[0]), mesh.0.vertices(base_edge[1])];
+    let space_normalization = NormalizedSpace {
+        mesh_size: element_size,
+        base_edge: base_edge,
+    };
+    let base_edge =
         mesh.0
-            .he_vector(mesh.0.he_to_prev_he()[base_edge.0])
-            .normalize(),
+            .he_vector(base_edge_id)
+            .to_normalized_space::<Vector2<f64>>(&space_normalization);
+    let prev_edge = (
+        mesh.0.he_to_prev_he()[base_edge_id],
+        mesh.0
+            .he_vector(mesh.0.he_to_prev_he()[base_edge_id])
+            .to_normalized_space::<Vector2<f64>>(&space_normalization),
     );
     let next_edge = (
-        mesh.0.he_to_next_he()[base_edge.0],
+        mesh.0.he_to_next_he()[base_edge_id],
         mesh.0
-            .he_vector(mesh.0.he_to_next_he()[base_edge.0])
-            .normalize(),
+            .he_vector(mesh.0.he_to_next_he()[base_edge_id])
+            .to_normalized_space::<Vector2<f64>>(&space_normalization),
     );
-    let mut alpha = prev_edge.1.angle(&base_edge.1).abs();
-    let mut beta = next_edge.1.angle(&base_edge.1).abs();
+    let mut alpha = prev_edge.1.0.angle(&base_edge.0).abs();
+    let mut beta = next_edge.1.0.angle(&base_edge.0).abs();
     if alpha > beta {
         let temp = alpha;
         alpha = beta;
@@ -121,7 +129,11 @@ pub fn suitability_check(
     todo!()
 }
 
-pub fn find_existing_candidates(mesh: &Modifiable2DMesh, base_edge: HalfEdgeIndex, element_size: f64) -> Vec<ConsideredPoint> {
+pub fn find_existing_candidates(
+    mesh: &Modifiable2DMesh,
+    base_edge: HalfEdgeIndex,
+    element_size: f64,
+) -> Vec<ConsideredPoint> {
     todo!()
 }
 
