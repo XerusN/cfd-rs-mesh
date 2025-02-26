@@ -111,7 +111,29 @@ pub fn ideal_node(
     );
 }
 
-pub fn validity_check(
+pub fn node_validity_check(
+    mesh: &Modifiable2DMesh,
+    front: &[ParentIndex],
+    element_size: f64,
+    considered_point: ConsideredPoint,
+) -> bool {
+    let base_point = considered_point.coordinates(&mesh.0);
+    
+    let min = 0.67*0.67*element_size*element_size;
+    
+    for parent in front {
+        for node in mesh.0.vertices_from_parent(*parent) {
+            let current_point = mesh.0.vertices(node);
+            if nalgebra::distance_squared(&base_point, &current_point) < min {
+                return false
+            }
+        }
+    }
+    
+    true
+}
+
+pub fn element_validity_check(
     mesh: &Modifiable2DMesh,
     base_edge: HalfEdgeIndex,
     element_size: f64,
@@ -122,8 +144,9 @@ pub fn validity_check(
 
 pub fn suitability_check(
     mesh: &Modifiable2DMesh,
-    base_edge: HalfEdgeIndex,
+    front: &[ParentIndex],
     element_size: f64,
+    base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
 ) -> bool {
     todo!()
