@@ -142,8 +142,7 @@ pub fn element_validity_check(
     let a = mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]);
     let b = mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]);
     let c = considered_point.coordinates(&mesh.0);
-    return edge_intersect_parent(&mesh.0, front, &[a, c])
-        | edge_intersect_parent(&mesh.0, front, &[b, c]);
+    return triangle_intersect_front(&mesh.0, front, base_edge, considered_point);
 }
 
 pub fn suitability_check(

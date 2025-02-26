@@ -61,21 +61,29 @@ impl SpaceNormalize for Vector2<f64> {
     }
 }
 
-pub fn edge_intersect_parent(
-    mesh: &Base2DMesh,
-    front: &[ParentIndex],
-    edge: &[Point2<f64>],
-) -> bool {
-    todo!()
-}
-
+/// Checks if a triangle intersects the front
 pub fn triangle_intersect_front(
     mesh: &Base2DMesh,
     front: &[ParentIndex],
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
 ) -> bool {
-    todo!()
+    let point = considered_point.coordinates(mesh);
+    // Might cause issue with ordering
+    let egde1 = mesh.vertices_from_he(base_edge);
+    let triangle = [mesh.vertices(egde1[0]), mesh.vertices(egde1[1]), point];
+
+    for &parent in front {
+        for he in mesh.he_from_parent(parent) {
+            let edge = mesh.vertices_from_he(he);
+            let edge = [mesh.vertices(edge[0]), mesh.vertices(edge[1])];
+            if edge_intersect_triangle(&triangle, &edge) {
+                return true;
+            }
+        }
+    }
+
+    false
 }
 
 pub fn edge_intersect_triangle(triangle: &[Point2<f64>], edge: &[Point2<f64>]) -> bool {
