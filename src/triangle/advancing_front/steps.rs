@@ -68,10 +68,10 @@ pub fn ideal_node(
         mesh_size: element_size,
         base_edge: base_edge,
     };
-    let base_edge =
-        mesh.0
-            .he_vector(base_edge_id)
-            .to_normalized_space::<Vector2<f64>>(&space_normalization);
+    let base_edge = mesh
+        .0
+        .he_vector(base_edge_id)
+        .to_normalized_space::<Vector2<f64>>(&space_normalization);
     let prev_edge = (
         mesh.0.he_to_prev_he()[base_edge_id],
         mesh.0
@@ -84,8 +84,8 @@ pub fn ideal_node(
             .he_vector(mesh.0.he_to_next_he()[base_edge_id])
             .to_normalized_space::<Vector2<f64>>(&space_normalization),
     );
-    let mut alpha = prev_edge.1.0.angle(&base_edge.0).abs();
-    let mut beta = next_edge.1.0.angle(&base_edge.0).abs();
+    let mut alpha = prev_edge.1 .0.angle(&base_edge.0).abs();
+    let mut beta = next_edge.1 .0.angle(&base_edge.0).abs();
     if alpha > beta {
         let temp = alpha;
         alpha = beta;
@@ -118,28 +118,32 @@ pub fn node_validity_check(
     considered_point: ConsideredPoint,
 ) -> bool {
     let base_point = considered_point.coordinates(&mesh.0);
-    
-    let min = 0.67*0.67*element_size*element_size;
-    
+
+    let min = 0.67 * 0.67 * element_size * element_size;
+
     for parent in front {
         for node in mesh.0.vertices_from_parent(*parent) {
             let current_point = mesh.0.vertices(node);
             if nalgebra::distance_squared(&base_point, &current_point) < min {
-                return false
+                return false;
             }
         }
     }
-    
+
     true
 }
 
 pub fn element_validity_check(
     mesh: &Modifiable2DMesh,
+    front: &[ParentIndex],
     base_edge: HalfEdgeIndex,
-    element_size: f64,
     considered_point: ConsideredPoint,
 ) -> bool {
-    todo!()
+    let a = mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]);
+    let b = mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]);
+    let c = considered_point.coordinates(&mesh.0);
+    return edge_intersect_parent(&mesh.0, front, &[a, c])
+        | edge_intersect_parent(&mesh.0, front, &[b, c]);
 }
 
 pub fn suitability_check(
