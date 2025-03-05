@@ -19,46 +19,77 @@ impl ConsideredPoint {
 /// Space Normalization for isotropic mesh control
 #[derive(Clone, Debug, PartialEq)]
 pub struct NormalizedSpace {
-    pub mesh_size: f64,
-    pub base_edge: [Point2<f64>; 2],
+    pub u: Vector2<f64>,
+    pub center: Point2<f64>,
+}
+
+impl NormalizedSpace {
+    pub fn new(mesh: &Base2DMesh, base_edge: HalfEdgeIndex) -> Self {
+        let base_edge_vert = mesh.vertices_from_he(base_edge);
+        let base_edge_vert = (
+            mesh.vertices(base_edge_vert[0]),
+            mesh.vertices(base_edge_vert[1]),
+        );
+        let center = Point2::new(
+            base_edge_vert.0.x + base_edge_vert.1.x,
+            base_edge_vert.0.y + base_edge_vert.1.y,
+        ) / 2.;
+        let u = mesh.he_vector(base_edge).normalize();
+        NormalizedSpace { u, center }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SpaceNormalized<T>(pub T);
 
-pub trait SpaceNormalize {
-    fn to_normalized_space<S>(&self, normalized_space: &NormalizedSpace) -> SpaceNormalized<S>;
+pub trait SpaceNormalize<S> {
+    fn to_normalized_space(&self, ns: &NormalizedSpace) -> SpaceNormalized<S>;
 
-    fn from_normalized_space<S>(
+    fn from_normalized_space(
         coordinates: SpaceNormalized<&S>,
-        normalized_space: &NormalizedSpace,
+        ns: &NormalizedSpace,
     ) -> Self;
 }
 
-impl SpaceNormalize for Point2<f64> {
-    fn to_normalized_space<S>(&self, normalized_space: &NormalizedSpace) -> SpaceNormalized<S> {
-        let mid_base_edge = Point2::new(normalized_space.base_edge[0].x + normalized_space.base_edge[1].x, normalized_space.base_edge[0].y + normalized_space.base_edge[1].y)/2.;
-        todo!()
+impl SpaceNormalize<Point2<f64>> for Point2<f64> {
+    fn to_normalized_space(&self, ns: &NormalizedSpace) -> SpaceNormalized<Point2<f64>> {
+        //center at the mid point
+        let centered = Point2::new(self.x - ns.center.x, self.y - ns.center.y);
+        // Rotate in the direction of the base edge
+        let rotated = Point2::new(centered.x*ns.u.x + centered.y*ns.u.y, - centered.x*ns.u.y + centered.y*ns.u.x);
+        SpaceNormalized(rotated)
     }
 
-    fn from_normalized_space<S>(
-        coordinates: SpaceNormalized<&S>,
-        normalized_space: &NormalizedSpace,
+    fn from_normalized_space(
+        coordinates: SpaceNormalized<&Point2<f64>>,
+        ns: &NormalizedSpace,
     ) -> Self {
-        todo!()
+        // Rotate back
+        let derotated = Point2::new(coordinates.0.x*ns.u.x + coordinates.0.y*ns.u.y,  coordinates.0.x*ns.u.y + coordinates.0.y*ns.u.x);
+        //center at the mid point
+        let decentered = Point2::new(derotated.x + ns.center.x, derotated.y + ns.center.y);
+        decentered
     }
 }
 
-impl SpaceNormalize for Vector2<f64> {
-    fn to_normalized_space<S>(&self, normalized_space: &NormalizedSpace) -> SpaceNormalized<S> {
-        todo!()
+impl SpaceNormalize<Vector2<f64>> for Vector2<f64> {
+    fn to_normalized_space(&self, ns: &NormalizedSpace) -> SpaceNormalized<Vector2<f64>> {
+        //center at the mid point
+        let centered = Vector2::new(self.x - ns.center.x, self.y - ns.center.y);
+        // Rotate in the direction of the base edge
+        let rotated = Vector2::new(centered.x*ns.u.x + centered.y*ns.u.y, - centered.x*ns.u.y + centered.y*ns.u.x);
+        SpaceNormalized(rotated)
     }
 
-    fn from_normalized_space<S>(
-        coordinates: SpaceNormalized<&S>,
-        normalized_space: &NormalizedSpace,
+    fn from_normalized_space(
+        coordinates: SpaceNormalized<&Vector2<f64>>,
+        ns: &NormalizedSpace,
     ) -> Self {
-        todo!()
+        // Rotate back
+        let derotated = Vector2::new(coordinates.0.x*ns.u.x + coordinates.0.y*ns.u.y,  coordinates.0.x*ns.u.y + coordinates.0.y*ns.u.x);
+        //center at the mid point
+        let decentered = Vector2::new(derotated.x + ns.center.x, derotated.y + ns.center.y);
+        decentered
     }
 }
 
