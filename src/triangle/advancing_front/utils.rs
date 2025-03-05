@@ -37,6 +37,7 @@ pub trait SpaceNormalize {
 
 impl SpaceNormalize for Point2<f64> {
     fn to_normalized_space<S>(&self, normalized_space: &NormalizedSpace) -> SpaceNormalized<S> {
+        let mid_base_edge = Point2::new(normalized_space.base_edge[0].x + normalized_space.base_edge[1].x, normalized_space.base_edge[0].y + normalized_space.base_edge[1].y)/2.;
         todo!()
     }
 
