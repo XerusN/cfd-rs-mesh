@@ -4,7 +4,7 @@ use std::f64::consts::PI;
 use super::utils::*;
 use cfd_rs_utils::{
     errors::MeshError,
-    mesh::{indices::*, Modifiable2DMesh},
+    mesh::{indices::*, Base2DMesh, Modifiable2DMesh},
 };
 use nalgebra::{Point2, Vector2};
 
@@ -39,20 +39,73 @@ pub fn select_base_edge(mesh: &Modifiable2DMesh, front: &[ParentIndex]) -> HalfE
             current_min = i
         }
     }
-    return edges_sizes_squared[current_min].0;
+    edges_sizes_squared[current_min].0
 }
 
 /// Will get proper definition later, for now the mesh size is considered to be constant so the base element size is constant too.
-pub fn element_size(mesh: &Modifiable2DMesh, base_edge: HalfEdgeIndex, mesh_size: f64) -> f64 {
+pub fn element_size(mesh_size: f64) -> f64 {
     mesh_size
 }
 
 pub fn new_element(
     mesh: &mut Modifiable2DMesh,
+    front: &mut Vec<ParentIndex>,
     base_edge: HalfEdgeIndex,
     element_size: f64,
 ) -> Result<(), MeshError> {
-    todo!()
+    let ideal_nod;
+    'ideal_node: {
+        ideal_nod = ideal_node(mesh, base_edge, element_size);
+        if ideal_nod.is_none() {
+            break 'ideal_node;
+        }
+
+        let considered_point = ConsideredPoint::NewPoint(ideal_nod.expect("uh"));
+
+        if !node_validity_check(mesh, front, element_size, considered_point) {
+            break 'ideal_node;
+        }
+        if !node_suitability_check(mesh, base_edge, considered_point) {
+            break 'ideal_node;
+        }
+
+        return add_element(mesh, front, base_edge, considered_point);
+    }
+
+    // Implement a choice based on the suitability criterion to enhance quality
+    let existing_candidates = find_existing_candidates(mesh, front, base_edge, element_size);
+    for point in existing_candidates {
+        'point: {
+            if !node_validity_check(mesh, front, element_size, point) {
+                break 'point;
+            }
+            if !node_suitability_check(mesh, base_edge, point) {
+                break 'point;
+            }
+
+            return add_element(mesh, front, base_edge, point);
+        }
+    }
+
+    // Implement a choice based on the suitability criterion to enhance quality
+    if ideal_nod.is_none() {
+        return Err(MeshError::NoElementCreatable(base_edge));
+    }
+    let trie_vertices = create_trie_vertices(mesh, base_edge, ideal_nod.expect("uh"), 4);
+    for point in trie_vertices {
+        'point: {
+            if !node_validity_check(mesh, front, element_size, point) {
+                break 'point;
+            }
+            if !node_suitability_check(mesh, base_edge, point) {
+                break 'point;
+            }
+
+            return add_element(mesh, front, base_edge, point);
+        }
+    }
+
+    Err(MeshError::NoElementCreatable(base_edge))
 }
 
 /// Based on J. Frysketig, 1994.
@@ -62,8 +115,6 @@ pub fn ideal_node(
     base_edge_id: HalfEdgeIndex,
     element_size: f64,
 ) -> Option<Point2<f64>> {
-    let base_edge = mesh.0.vertices_from_he(base_edge_id);
-    let base_edge = [mesh.0.vertices(base_edge[0]), mesh.0.vertices(base_edge[1])];
     let space_normalization = NormalizedSpace::new(&mesh.0, base_edge_id);
     let base_edge = mesh
         .0
@@ -84,9 +135,7 @@ pub fn ideal_node(
     let mut alpha = prev_edge.1 .0.angle(&base_edge.0).abs();
     let mut beta = next_edge.1 .0.angle(&base_edge.0).abs();
     if alpha > beta {
-        let temp = alpha;
-        alpha = beta;
-        beta = temp;
+        std::mem::swap(&mut alpha, &mut beta);
     }
 
     if alpha < PI * 80. / 180. {
@@ -103,9 +152,7 @@ pub fn ideal_node(
     let phi_a = alpha / (alpha / (PI / 3.)).round();
     let phi_b = beta / (beta / (PI / 3.)).round();
 
-    return Some(
-        Point2::new(phi_a.cos() - phi_b.cos(), phi_a.sin() - phi_b.sin()) * element_size / 2.,
-    );
+    Some(Point2::new(phi_a.cos() - phi_b.cos(), phi_a.sin() - phi_b.sin()) * element_size / 2.)
 }
 
 pub fn node_validity_check(
@@ -136,15 +183,12 @@ pub fn element_validity_check(
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
 ) -> bool {
-    let a = mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]);
-    let b = mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]);
-    let c = considered_point.coordinates(&mesh.0);
-    return triangle_intersect_front(&mesh.0, front, base_edge, considered_point);
+    triangle_intersect_front(&mesh.0, front, base_edge, considered_point)
 }
 
 pub fn node_suitability_check(
     mesh: &Modifiable2DMesh,
-    front: &[ParentIndex],
+    // front: &[ParentIndex],
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
 ) -> bool {
@@ -224,7 +268,7 @@ pub fn find_existing_candidates(
 pub fn create_trie_vertices(
     mesh: &Modifiable2DMesh,
     base_edge: HalfEdgeIndex,
-    element_size: f64,
+    // element_size: f64,
     ideal_node: Point2<f64>,
     number_trie_vertices: usize,
 ) -> Vec<ConsideredPoint> {
@@ -249,10 +293,79 @@ pub fn create_trie_vertices(
     trie_vertices
 }
 
+/// Once the quality and validity is checked modifies the data structure to add the new element
+///
+/// # Warning
+///
+/// Since the mesh structure is changed any value held before that might represent something else now
 pub fn add_element(
     mesh: &mut Modifiable2DMesh,
+    front: &mut Vec<ParentIndex>,
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
-) {
-    todo!()
+) -> Result<(), MeshError> {
+    let point_id = match considered_point {
+        ConsideredPoint::NewPoint(point) => {
+            let new_parent;
+            unsafe { new_parent = mesh.notching(base_edge, point)? };
+            // If useless parent added it will get removed
+            front.push(new_parent);
+            clean_front(&mesh.0, front);
+            return Ok(());
+        }
+        ConsideredPoint::OldPoint(point_id) => point_id,
+    };
+
+    // Double check this part
+    if mesh.0.vertices_from_he(mesh.0.he_to_next_he()[base_edge])[1] == point_id {
+        let front_parent = mesh.0.he_to_parent()[base_edge];
+        let next_point = mesh.0.vertices_from_he(mesh.0.he_to_next_he()[base_edge])[1];
+        let new_parent;
+        unsafe {
+            new_parent = mesh.trimming(
+                (mesh.0.vertices_from_he(base_edge)[0], next_point),
+                front_parent,
+            )?;
+        }
+        front.push(new_parent);
+        clean_front(&mesh.0, front);
+        return Ok(());
+    }
+    if mesh.0.vertices_from_he(mesh.0.he_to_prev_he()[base_edge])[0] == point_id {
+        let front_parent = mesh.0.he_to_parent()[base_edge];
+        let next_point = mesh.0.vertices_from_he(mesh.0.he_to_prev_he()[base_edge])[0];
+        let new_parent;
+        unsafe {
+            new_parent = mesh.trimming(
+                (mesh.0.vertices_from_he(base_edge)[1], next_point),
+                front_parent,
+            )?;
+        }
+        front.push(new_parent);
+        clean_front(&mesh.0, front);
+        return Ok(());
+    }
+
+    // Only remains the case where both edge have to be created toward an old point, right?
+    let front_parent = mesh.0.he_to_parent()[base_edge];
+    let base_points = mesh.0.vertices_from_he(base_edge);
+
+    // Relies on non-enforced behaviour of the trimming function! (old parent = parent from new he from vertices.0 to vertices.1)
+    let new_parent1;
+    let new_parent2;
+    unsafe {
+        new_parent1 = mesh.trimming((point_id, base_points[0]), front_parent)?;
+    }
+    unsafe {
+        new_parent2 = mesh.trimming((point_id, base_points[1]), front_parent)?;
+    }
+    front.push(new_parent1);
+    front.push(new_parent2);
+    clean_front(&mesh.0, front);
+
+    Ok(())
+}
+
+pub fn clean_front(mesh: &Base2DMesh, front: &mut Vec<ParentIndex>) {
+    front.retain(|&parent| mesh.vertices_from_parent(parent).len() > 3);
 }
