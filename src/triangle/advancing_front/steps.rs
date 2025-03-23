@@ -132,8 +132,10 @@ pub fn ideal_node(
             .he_vector(mesh.0.he_to_next_he()[base_edge_id])
             .to_normalized_space(&space_normalization),
     );
+    
     let mut alpha = prev_edge.1 .0.angle(&base_edge.0).abs();
     let mut beta = next_edge.1 .0.angle(&base_edge.0).abs();
+    println!("{:?} {:?}", alpha, beta);
     if alpha > beta {
         std::mem::swap(&mut alpha, &mut beta);
     }

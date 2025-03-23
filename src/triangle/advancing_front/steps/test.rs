@@ -33,3 +33,35 @@ fn refine_boundary_test1() {
     refine_boundary(&mut mesh, 0.09);
     assert!(mesh.0.he_len() > base_len * 5);
 }
+
+#[test]
+fn ideal_node_test() {
+    let mut mesh = simple_mesh();
+    let element_size = 0.5;
+    refine_boundary(&mut mesh, element_size);
+    let mut cell_id = None;
+    for (i, parent) in mesh.0.parents().iter().enumerate() {
+        if let &Parent::Cell = parent {
+            cell_id = Some(i)
+        }
+    }
+    let &base_edge = mesh
+        .0
+        .he_from_parent(match cell_id {
+            None => panic!("No cell in the simple mesh after boundary refinement"),
+            Some(i) => ParentIndex(i),
+        })
+        .get(0)
+        .expect("No Half edge in first found cell");
+
+    let node = ideal_node(&mesh, base_edge, element_size);
+
+    match node {
+        None => panic!("No ideal node created"),
+        Some(node) => {
+            if (node.x >= 1.) | (node.x <= 0.) | (node.y >= 1.) | (node.y <= 0.) {
+                panic!("Ideal node out of bound")
+            }
+        }
+    }
+}

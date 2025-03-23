@@ -1,6 +1,9 @@
 use cfd_rs_utils::mesh::{indices::*, Base2DMesh};
 use nalgebra::{Point2, Vector2};
 
+#[cfg(test)]
+mod test;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ConsideredPoint {
     NewPoint(Point2<f64>),
@@ -45,7 +48,7 @@ pub struct SpaceNormalized<T>(pub T);
 pub trait SpaceNormalize<S> {
     fn to_normalized_space(&self, ns: &NormalizedSpace) -> SpaceNormalized<S>;
 
-    fn from_normalized_space(coordinates: SpaceNormalized<&S>, ns: &NormalizedSpace) -> Self;
+    fn from_normalized_space(coordinates: &SpaceNormalized<S>, ns: &NormalizedSpace) -> Self;
 }
 
 impl SpaceNormalize<Point2<f64>> for Point2<f64> {
@@ -61,12 +64,12 @@ impl SpaceNormalize<Point2<f64>> for Point2<f64> {
     }
 
     fn from_normalized_space(
-        coordinates: SpaceNormalized<&Point2<f64>>,
+        coordinates: &SpaceNormalized<Point2<f64>>,
         ns: &NormalizedSpace,
     ) -> Self {
         // Rotate back
         let derotated = Point2::new(
-            coordinates.0.x * ns.u.x + coordinates.0.y * ns.u.y,
+            coordinates.0.x * ns.u.x - coordinates.0.y * ns.u.y,
             coordinates.0.x * ns.u.y + coordinates.0.y * ns.u.x,
         );
         //center at the mid point
@@ -77,7 +80,8 @@ impl SpaceNormalize<Point2<f64>> for Point2<f64> {
 impl SpaceNormalize<Vector2<f64>> for Vector2<f64> {
     fn to_normalized_space(&self, ns: &NormalizedSpace) -> SpaceNormalized<Vector2<f64>> {
         //center at the mid point
-        let centered = Vector2::new(self.x - ns.center.x, self.y - ns.center.y);
+        // let centered = Vector2::new(self.x - ns.center.x, self.y - ns.center.y);
+        let centered = self;
         // Rotate in the direction of the base edge
         let rotated = Vector2::new(
             centered.x * ns.u.x + centered.y * ns.u.y,
@@ -87,16 +91,17 @@ impl SpaceNormalize<Vector2<f64>> for Vector2<f64> {
     }
 
     fn from_normalized_space(
-        coordinates: SpaceNormalized<&Vector2<f64>>,
+        coordinates: &SpaceNormalized<Vector2<f64>>,
         ns: &NormalizedSpace,
     ) -> Self {
         // Rotate back
         let derotated = Vector2::new(
-            coordinates.0.x * ns.u.x + coordinates.0.y * ns.u.y,
+            coordinates.0.x * ns.u.x - coordinates.0.y * ns.u.y,
             coordinates.0.x * ns.u.y + coordinates.0.y * ns.u.x,
         );
         //center at the mid point
-        Vector2::new(derotated.x + ns.center.x, derotated.y + ns.center.y)
+        // Vector2::new(derotated.x + ns.center.x, derotated.y + ns.center.y)
+        Vector2::new(derotated.x, derotated.y)
     }
 }
 
