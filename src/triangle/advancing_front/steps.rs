@@ -54,6 +54,7 @@ pub fn new_element(
     element_size: f64,
 ) -> Result<(), MeshError> {
     let ideal_nod;
+    let mut valid_points = vec!();
     'ideal_node: {
         ideal_nod = ideal_node(mesh, base_edge, element_size);
         if ideal_nod.is_none() {
@@ -65,7 +66,12 @@ pub fn new_element(
         if !node_validity_check(mesh, front, element_size, considered_point) {
             break 'ideal_node;
         }
-        if !node_suitability_check(mesh, base_edge, considered_point) {
+        if !element_validity_check(mesh, front, base_edge, considered_point) {
+            break 'ideal_node;
+        }
+        let tan_a = node_suitability_check(mesh, base_edge, considered_point);
+        if tan_a < f64::tan(30.)  {
+            valid_points.push((considered_point, tan_a));
             break 'ideal_node;
         }
 
@@ -79,7 +85,12 @@ pub fn new_element(
             if !node_validity_check(mesh, front, element_size, point) {
                 break 'point;
             }
-            if !node_suitability_check(mesh, base_edge, point) {
+            if !element_validity_check(mesh, front, base_edge, point) {
+                break 'point;
+            }
+            let tan_a = node_suitability_check(mesh, base_edge, point);
+            if tan_a < f64::tan(30.)  {
+                valid_points.push((point, tan_a));
                 break 'point;
             }
 
@@ -97,15 +108,32 @@ pub fn new_element(
             if !node_validity_check(mesh, front, element_size, point) {
                 break 'point;
             }
-            if !node_suitability_check(mesh, base_edge, point) {
+            if !element_validity_check(mesh, front, base_edge, point) {
+                break 'point;
+            }
+            let tan_a = node_suitability_check(mesh, base_edge, point);
+            if tan_a < f64::tan(30.)  {
+                valid_points.push((point, tan_a));
                 break 'point;
             }
 
             return add_element(mesh, front, base_edge, point);
         }
     }
+    
+    if valid_points.is_empty() {
+        return Err(MeshError::NoElementCreatable(base_edge))
+    } else {
+        let mut max = (0, valid_points[0].1);
+        for (i, valid) in valid_points.iter().enumerate() {
+            if valid.1 > max.1 {
+                max = (i, valid.1);
+            }
+        }
+        return add_element(mesh, front, base_edge, valid_points[max.0].0)
+    }
 
-    Err(MeshError::NoElementCreatable(base_edge))
+    
 }
 
 /// Based on J. Frysketig, 1994.
@@ -132,10 +160,10 @@ pub fn ideal_node(
             .he_vector(mesh.0.he_to_next_he()[base_edge_id])
             .to_normalized_space(&space_normalization),
     );
-    
-    let mut alpha = prev_edge.1 .0.angle(&base_edge.0).abs();
-    let mut beta = next_edge.1 .0.angle(&base_edge.0).abs();
-    println!("{:?} {:?}", alpha, beta);
+
+    let mut alpha = prev_edge.1.0.angle(&base_edge.0).abs();
+    let mut beta = (-next_edge.1.0).angle(&base_edge.0).abs();
+
     if alpha > beta {
         std::mem::swap(&mut alpha, &mut beta);
     }
@@ -143,7 +171,6 @@ pub fn ideal_node(
     if alpha < PI * 80. / 180. {
         return None;
     }
-
     if (alpha < PI * 91. / 180.) && (alpha > PI * 89. / 180.) {
         return Some(Point2::new(
             element_size * (PI / 4.).cos(),
@@ -166,10 +193,12 @@ pub fn node_validity_check(
     let base_point = considered_point.coordinates(&mesh.0);
 
     let min = 0.67 * 0.67 * element_size * element_size;
-
+    
+    println!("{:?} {:?}", base_point, min);
     for parent in front {
         for node in mesh.0.vertices_from_parent(*parent) {
             let current_point = mesh.0.vertices(node);
+            println!("{:?}", nalgebra::distance_squared(&base_point, &current_point));
             if nalgebra::distance_squared(&base_point, &current_point) < min {
                 return false;
             }
@@ -185,6 +214,7 @@ pub fn element_validity_check(
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
 ) -> bool {
+    println!("Intersect {:?}", triangle_intersect_front(&mesh.0, front, base_edge, considered_point));
     triangle_intersect_front(&mesh.0, front, base_edge, considered_point)
 }
 
@@ -193,7 +223,7 @@ pub fn node_suitability_check(
     // front: &[ParentIndex],
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
-) -> bool {
+) -> f64 {
     let tan_30 = (30. * f64::consts::PI / 180.).tan();
 
     let base_edge_vert = mesh.0.vertices_from_he(base_edge);
@@ -216,8 +246,9 @@ pub fn node_suitability_check(
     .norm()
         / (theta * base_edge_vec.norm());
     if tan_a < tan_30 {
-        return false;
+        return tan_a;
     }
+    let tan_a_old = tan_a;
 
     let t = -base_edge_vec.dot(&Vector2::new(
         point.x - base_edge_vert.1.x,
@@ -231,10 +262,10 @@ pub fn node_suitability_check(
     .norm()
         / (theta * base_edge_vec.norm());
     if tan_a < tan_30 {
-        return false;
+        return tan_a;
     }
-
-    true
+    
+    tan_a.max(tan_a_old)
 }
 
 pub fn find_existing_candidates(
@@ -369,5 +400,7 @@ pub fn add_element(
 }
 
 pub fn clean_front(mesh: &Base2DMesh, front: &mut Vec<ParentIndex>) {
+    println!("{:?}", mesh);
+    println!("{:?}", front);
     front.retain(|&parent| mesh.vertices_from_parent(parent).len() > 3);
 }

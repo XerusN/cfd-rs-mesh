@@ -55,7 +55,7 @@ fn ideal_node_test() {
         .expect("No Half edge in first found cell");
 
     let node = ideal_node(&mesh, base_edge, element_size);
-
+    
     match node {
         None => panic!("No ideal node created"),
         Some(node) => {
