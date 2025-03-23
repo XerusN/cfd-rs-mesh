@@ -42,7 +42,7 @@ pub fn advancing_front(
     let mut i = 0;
     if step_output {
         mesh.0
-            .export_vtk(format!("./output/advancing_{}.vtk", i).as_str(), None)
+            .export_vtk(format!("./output/advancing_{}.vtk", i).as_str())
             .expect("");
     }
     loop {
@@ -59,12 +59,15 @@ pub fn advancing_front(
 
         let base_edge = select_base_edge(mesh, &front);
         new_element(mesh, &mut front, base_edge, element_size)?;
-
+        println!("Check mesh: {:?}", mesh.0.check_mesh());
+        
         if step_output {
             mesh.0
-                .export_vtk(format!("./output/advancing_{}.vtk", i).as_str(), None)
+                .export_vtk(format!("./output/advancing_{}.vtk", i).as_str())
                 .expect("");
         }
+        
+        
     }
 
     Ok(())

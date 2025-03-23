@@ -194,11 +194,9 @@ pub fn node_validity_check(
 
     let min = 0.67 * 0.67 * element_size * element_size;
     
-    println!("{:?} {:?}", base_point, min);
     for parent in front {
         for node in mesh.0.vertices_from_parent(*parent) {
             let current_point = mesh.0.vertices(node);
-            println!("{:?}", nalgebra::distance_squared(&base_point, &current_point));
             if nalgebra::distance_squared(&base_point, &current_point) < min {
                 return false;
             }
@@ -214,7 +212,6 @@ pub fn element_validity_check(
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
 ) -> bool {
-    println!("Intersect {:?}", triangle_intersect_front(&mesh.0, front, base_edge, considered_point));
     triangle_intersect_front(&mesh.0, front, base_edge, considered_point)
 }
 
@@ -400,7 +397,5 @@ pub fn add_element(
 }
 
 pub fn clean_front(mesh: &Base2DMesh, front: &mut Vec<ParentIndex>) {
-    println!("{:?}", mesh);
-    println!("{:?}", front);
     front.retain(|&parent| mesh.vertices_from_parent(parent).len() > 3);
 }
