@@ -30,10 +30,14 @@ fn simple_mesh() -> Modifiable2DMesh {
 fn refine_boundary_test1() {
     let mut mesh = simple_mesh();
     let base_len = mesh.0.he_len();
-    mesh.0.export_vtk("./output/test_0.vtk").expect("Error in export");
     refine_boundary(&mut mesh, 0.09);
-    mesh.0.export_vtk("./output/test_1.vtk").expect("Error in export");
     assert!(mesh.0.he_len() > base_len * 5);
+    
+    let mut mesh = simple_mesh();
+    mesh.0.export_vtk("./output/test_0.vtk").expect("Error in export");
+    refine_boundary(&mut mesh, 0.5);
+    mesh.0.export_vtk("./output/test_1.vtk").expect("Error in export");
+    println!("{:?}", mesh);
 }
 
 #[test]

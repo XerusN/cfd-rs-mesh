@@ -57,8 +57,22 @@ pub fn advancing_front(
             break;
         }
 
-        let base_edge = select_base_edge(mesh, &front);
-        new_element(mesh, &mut front, base_edge, element_size)?;
+        let mut base_edge = select_base_edge(mesh, &front);
+        let first_edge = base_edge;
+        loop {
+            let result = new_element(mesh, &mut front, base_edge, element_size);
+            if let Err(MeshError::NoElementCreatable(_)) = result {
+                base_edge = mesh.0.he_to_next_he()[base_edge];
+                if base_edge == first_edge {
+                    return Err(MeshError::NoElementCreatable(base_edge));
+                }
+            } else {
+                break;
+            }
+        }
+        //println!("mesh: {:?}", mesh);
+        //println!("base edge: {:?} {:?} {:?} {:?}", base_edge, mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]), mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]), mesh.0.he_to_parent()[base_edge]);
+        
         println!("Check mesh: {:?}", mesh.0.check_mesh());
         
         if step_output {

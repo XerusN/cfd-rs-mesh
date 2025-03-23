@@ -1,5 +1,4 @@
 # vtk DataFile Version 3.0
-# 
 2D Mesh Example
 ASCII
 DATASET POLYDATA
@@ -32,28 +31,28 @@ LINES 20 60
 2 7 3
 2 8 4
 2 8 0
-2 0 4
 2 4 0
+2 0 4
 CELL_DATA 20
 SCALARS he_to_parent int 1
 LOOKUP_TABLE default
 1
-2
+0
 1
-2
+0
 1
-2
-1
-2
+0
 1
 0
 1
 2
 1
-2
-1
-2
+0
 1
 0
+1
+0
+1
 2
 0
+2
