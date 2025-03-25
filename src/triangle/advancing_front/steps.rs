@@ -57,16 +57,19 @@ pub fn new_element(
     let mut valid_points = vec!();
     'ideal_node: {
         ideal_nod = ideal_node(mesh, base_edge, element_size);
+        // println!("{:?}", ideal_nod);
         if ideal_nod.is_none() {
             break 'ideal_node;
         }
 
         let considered_point = ConsideredPoint::NewPoint(ideal_nod.expect("uh"));
 
-        if !node_validity_check(mesh, front, element_size, considered_point) {
+        if !node_validity_check(mesh, front, element_size, considered_point, base_edge) {
+            // println!("Node not valid");
             break 'ideal_node;
         }
         if !element_validity_check(mesh, front, base_edge, considered_point) {
+            // println!("Element not valid");
             break 'ideal_node;
         }
         let tan_a = node_suitability_check(mesh, base_edge, considered_point);
@@ -80,12 +83,18 @@ pub fn new_element(
 
     // Implement a choice based on the suitability criterion to enhance quality
     let existing_candidates = find_existing_candidates(mesh, front, base_edge, element_size);
+    
     for point in existing_candidates {
+        // if let ConsideredPoint::OldPoint(id) = point {
+        //     println!("{:?} {:?}", point, mesh.0.vertices(id));
+        // }
         'point: {
-            if !node_validity_check(mesh, front, element_size, point) {
+            if !node_validity_check(mesh, front, element_size, point, base_edge) {
+                // println!("Node not valid");
                 break 'point;
             }
             if !element_validity_check(mesh, front, base_edge, point) {
+                // println!("Element not valid");
                 break 'point;
             }
             let tan_a = node_suitability_check(mesh, base_edge, point);
@@ -105,10 +114,15 @@ pub fn new_element(
     let trie_vertices = create_trie_vertices(mesh, base_edge, ideal_nod.expect("uh"), 4);
     for point in trie_vertices {
         'point: {
-            if !node_validity_check(mesh, front, element_size, point) {
+            // if let ConsideredPoint::NewPoint(coord) = point {
+            //     println!("{:?} {:?}", point, coord);
+            // }
+            if !node_validity_check(mesh, front, element_size, point, base_edge) {
+                // println!("Node not valid");
                 break 'point;
             }
             if !element_validity_check(mesh, front, base_edge, point) {
+                // println!("Element not valid");
                 break 'point;
             }
             let tan_a = node_suitability_check(mesh, base_edge, point);
@@ -189,7 +203,15 @@ pub fn node_validity_check(
     front: &[ParentIndex],
     element_size: f64,
     considered_point: ConsideredPoint,
+    base_edge: HalfEdgeIndex,
 ) -> bool {
+    if let ConsideredPoint::OldPoint(old_point) = considered_point {
+        
+        if (mesh.0.vertices_from_he(mesh.0.he_to_next_he()[mesh.0.he_to_twin()[base_edge]])[1] == old_point) & (mesh.0.vertices_from_he(mesh.0.he_to_prev_he()[mesh.0.he_to_twin()[base_edge]])[0] == old_point) {
+            return false
+        }
+        return true
+    }
     let base_point = considered_point.coordinates(&mesh.0);
 
     let min = 0.67 * 0.67 * element_size * element_size;
@@ -282,7 +304,7 @@ pub fn find_existing_candidates(
         for point in mesh.0.vertices_from_parent(parent) {
             if (base_edge_vert[0] != point) & (base_edge_vert[1] != point) {
                 let vert = mesh.0.vertices(point);
-                // Maybe *4 too small (*4*1.33*1.33 in the book but nor same lhs)
+                // Maybe *4 too small (*4*1.33*1.33 in the book but not same lhs)
                 if Vector2::new(vert.x - mid_base_edge.x, vert.y - mid_base_edge.y).norm_squared()
                     < element_size * element_size * 4.
                 {

@@ -34,5 +34,5 @@ fn simple_mesh() -> Modifiable2DMesh {
 
 fn main() {
     let mut mesh = simple_mesh();
-    advancing_front(&mut mesh, 0.5, true).unwrap()
+    advancing_front(&mut mesh, 0.3, true).unwrap()
 }

@@ -22,7 +22,9 @@ pub fn advancing_front(
     step_output: bool,
 ) -> Result<(), MeshError> {
     let mut first_cell = None;
-
+    
+    let max_it = 200;
+    
     for (i, parent) in mesh.0.parents().iter().enumerate() {
         if parent == &mesh::Parent::Cell {
             first_cell = Some(ParentIndex(i))
@@ -46,34 +48,43 @@ pub fn advancing_front(
             .expect("");
     }
     loop {
-        i += 1;
-        println!(
-            "{:?}) Front size : {:?}",
-            i,
-            mesh.0.he_from_parent(first_cell).len()
-        );
-
+        
         if front.is_empty() {
             break;
         }
+        
+        i += 1;
+        if i > max_it {
+            return Err(MeshError::MaxIterationReached { max_it });
+        }
+        println!(
+            "{:?}) Front size : {:?}",
+            i,
+            front.iter().map(|&parent| mesh.0.he_from_parent(parent).len()).collect::<Vec<usize>>()
+        );
 
         let mut base_edge = select_base_edge(mesh, &front);
         let first_edge = base_edge;
+        // println!("{:?}", mesh.0);
         loop {
             let result = new_element(mesh, &mut front, base_edge, element_size);
+            // if let Err(MeshError::NoElementCreatable(_)) = result {
+            //     return Err(MeshError::NoElementCreatable(base_edge));
+            // }s
             if let Err(MeshError::NoElementCreatable(_)) = result {
                 base_edge = mesh.0.he_to_next_he()[base_edge];
                 if base_edge == first_edge {
                     return Err(MeshError::NoElementCreatable(base_edge));
                 }
+            } else if let Err(_) = result {
+                return result;
             } else {
                 break;
             }
         }
         //println!("mesh: {:?}", mesh);
         //println!("base edge: {:?} {:?} {:?} {:?}", base_edge, mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]), mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]), mesh.0.he_to_parent()[base_edge]);
-        
-        println!("Check mesh: {:?}", mesh.0.check_mesh());
+        mesh.0.check_mesh()?;
         
         if step_output {
             mesh.0
@@ -81,8 +92,10 @@ pub fn advancing_front(
                 .expect("");
         }
         
-        
     }
+    
+    println!("------------------------------------------------");
+    println!("                Meshing complete                ");
 
     Ok(())
 }
