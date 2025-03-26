@@ -84,7 +84,10 @@ pub fn advancing_front(
         }
         //println!("mesh: {:?}", mesh);
         //println!("base edge: {:?} {:?} {:?} {:?}", base_edge, mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]), mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]), mesh.0.he_to_parent()[base_edge]);
-        mesh.0.check_mesh()?;
+        let check = mesh.0.check_mesh();
+        if let Err(error) = check {
+            panic!("{:?}", error)
+        }
         
         if step_output {
             mesh.0
