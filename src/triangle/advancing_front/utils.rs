@@ -108,22 +108,34 @@ impl SpaceNormalize<Vector2<f64>> for Vector2<f64> {
 /// Checks if a triangle intersects the front
 pub fn triangle_intersect_front(
     mesh: &Base2DMesh,
-    front: &[ParentIndex],
+    front_parent: ParentIndex,
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
 ) -> bool {
     let point = considered_point.coordinates(mesh);
+    println!("point: {:?}", point);
     // Might cause issue with ordering
     let egde1 = mesh.vertices_from_he(base_edge);
     let triangle = [mesh.vertices(egde1[0]), mesh.vertices(egde1[1]), point];
-
-    for &parent in front {
-        for he in mesh.he_from_parent(parent) {
-            let edge = mesh.vertices_from_he(he);
-            let edge = [mesh.vertices(edge[0]), mesh.vertices(edge[1])];
-            if edge_intersect_triangle(&triangle, &edge) {
-                return true;
+    println!("Triangle: {:?}", triangle);
+    // Helps to have some assumptions later (points in trigonometric order)
+    if half_plane(&[triangle[0], triangle[1]], &triangle[2]) <= 0. {
+        return true
+    }
+    
+    'half_edge: for he in mesh.he_from_parent(front_parent) {
+        let edge = mesh.vertices_from_he(he);
+        let edge = [mesh.vertices(edge[0]), mesh.vertices(edge[1])];
+        for i in 0..3 {
+            if (edge[0] == triangle[i]) && (edge[1] == triangle[(i + 1) % 3]) {
+                continue 'half_edge;
             }
+        }
+        println!("Tested edge: {:?}", edge);
+        if edge_intersect_triangle(&triangle, &edge) {
+            println!("Intersecting edge!");
+            println!();
+            return true;
         }
     }
 
@@ -139,7 +151,22 @@ pub fn edge_intersect_triangle(triangle: &[Point2<f64>], edge: &[Point2<f64>]) -
             return false;
         }
     }
-
+    
+    for i in 0..3 {
+        for j in 0..2 {
+            if edge[j] == triangle[i] {
+                if (edge[(j + 1) % 2] == triangle[(i + 1) % 3]) | (edge[(j + 1) % 2] == triangle[(i + 2) % 3]) {
+                    return true
+                }
+                if (half_plane(&[triangle[i], triangle[(i + 1) % 3]], &edge[(j+1) % 2]) < 0.) | (half_plane(&[triangle[(i + 2) % 3], triangle[i]], &edge[(j+1) % 2]) < 0.) {
+                    return false
+                } else {
+                    return true
+                }
+            }
+        }
+    }
+    
     // 2. If one or two of the points is in the triangle => intersection
     if point_in_triangle(triangle, &edge[0]) {
         return true;
@@ -171,8 +198,10 @@ pub fn edge_intersect_triangle(triangle: &[Point2<f64>], edge: &[Point2<f64>]) -
 
 /// Determines if a point is on the positive or negative half-plane of an edge
 pub fn half_plane(edge: &[Point2<f64>], point: &Point2<f64>) -> f64 {
-    (edge[1].x - edge[0].x) * (point.y - edge[0].y)
-        - (edge[1].y - edge[0].y) * (point.x - edge[0].x)
+    let normal = Vector2::new(edge[0].y - edge[1].y, edge[1].x - edge[0].x).normalize();
+    normal.dot(&Vector2::new(point.x - edge[0].x, point.y - edge[0].y))
+    // (edge[1].x - edge[0].x) * (point.y - edge[0].y)
+    //     - (edge[1].y - edge[0].y) * (point.x - edge[0].x)
 }
 
 /// Tells if a point is in a triangle, the triangle points must be in the trigonometric order.

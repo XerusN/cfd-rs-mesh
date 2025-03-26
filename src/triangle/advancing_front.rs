@@ -3,6 +3,7 @@ use errors::MeshError;
 use mesh::indices::*;
 use mesh::Modifiable2DMesh;
 use steps::*;
+use std::fs;
 
 pub mod steps;
 pub mod utils;
@@ -21,6 +22,10 @@ pub fn advancing_front(
     element_size: f64,
     step_output: bool,
 ) -> Result<(), MeshError> {
+    
+    fs::remove_dir_all("./output").unwrap();
+    fs::create_dir("output").unwrap();
+    
     let mut first_cell = None;
     
     let max_it = 200;
@@ -65,12 +70,17 @@ pub fn advancing_front(
 
         let mut base_edge = select_base_edge(mesh, &front);
         let first_edge = base_edge;
+        let he_len = mesh.0.he_len();
         // println!("{:?}", mesh.0);
+        if i == 6 {
+            println!("{:?}", mesh.0)
+        }
         loop {
+            println!("base edge: {:?} {:?} {:?} {:?}", base_edge, mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]), mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]), mesh.0.he_to_parent()[base_edge]);
             let result = new_element(mesh, &mut front, base_edge, element_size);
             // if let Err(MeshError::NoElementCreatable(_)) = result {
             //     return Err(MeshError::NoElementCreatable(base_edge));
-            // }s
+            // }
             if let Err(MeshError::NoElementCreatable(_)) = result {
                 base_edge = mesh.0.he_to_next_he()[base_edge];
                 if base_edge == first_edge {
@@ -83,11 +93,9 @@ pub fn advancing_front(
             }
         }
         //println!("mesh: {:?}", mesh);
-        //println!("base edge: {:?} {:?} {:?} {:?}", base_edge, mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]), mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]), mesh.0.he_to_parent()[base_edge]);
-        let check = mesh.0.check_mesh();
-        if let Err(error) = check {
-            panic!("{:?}", error)
-        }
+        
+        println!("new edges: {:?}", (mesh.0.he_len() - he_len)/2);
+        println!();
         
         if step_output {
             mesh.0
@@ -95,6 +103,10 @@ pub fn advancing_front(
                 .expect("");
         }
         
+        let check = mesh.0.check_mesh();
+        if let Err(error) = check {
+            panic!("{:?}", error)
+        }
     }
     
     println!("------------------------------------------------");

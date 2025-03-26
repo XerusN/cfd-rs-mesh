@@ -62,3 +62,54 @@ fn space_normalization_test() {
     };
     
 }
+
+#[test]
+fn test_edge_intersect_triangle() {
+    let triangle = vec![
+        Point2::new(0.0, 0.0),
+        Point2::new(1.0, 0.0),
+        Point2::new(0.5, 1.0),
+    ];
+
+    // Case 1: Edge intersects the triangle
+    let edge_intersecting = vec![
+        Point2::new(0.25, -0.5),
+        Point2::new(0.25, 0.5),
+    ];
+    assert!(edge_intersect_triangle(&triangle, &edge_intersecting));
+
+    // Case 2: Edge does not intersect the triangle
+    let edge_not_intersecting = vec![
+        Point2::new(-1.0, -1.0),
+        Point2::new(-0.5, -0.5),
+    ];
+    assert!(!edge_intersect_triangle(&triangle, &edge_not_intersecting));
+
+    // Case 3: Edge is entirely inside the triangle
+    let edge_inside = vec![
+        Point2::new(0.25, 0.25),
+        Point2::new(0.5, 0.25),
+    ];
+    assert!(edge_intersect_triangle(&triangle, &edge_inside));
+
+    // Case 4: Edge is on one side of the triangle
+    let edge_on_side = vec![
+        Point2::new(0.0, 0.0),
+        Point2::new(1.0, 0.0),
+    ];
+    assert!(edge_intersect_triangle(&triangle, &edge_on_side));
+
+    // Case 5: Edge is exactly on a vertex of the triangle and colinear
+    let edge_on_vertex = vec![
+        Point2::new(0.0, 0.0),
+        Point2::new(0.5, 0.0),
+    ];
+    assert!(edge_intersect_triangle(&triangle, &edge_on_vertex));
+    
+    // Case 6: Edge is exactly on a vertex of the triangle
+    let edge_on_vertex = vec![
+        Point2::new(0.0, 0.0),
+        Point2::new(0.5, -1.0),
+    ];
+    assert!(!edge_intersect_triangle(&triangle, &edge_on_vertex));
+}

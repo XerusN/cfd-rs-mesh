@@ -55,6 +55,7 @@ pub fn new_element(
 ) -> Result<(), MeshError> {
     let ideal_nod;
     let mut valid_points = vec!();
+    let front_parent = mesh.0.he_to_parent()[base_edge];
     'ideal_node: {
         ideal_nod = ideal_node(mesh, base_edge, element_size);
         // println!("{:?}", ideal_nod);
@@ -64,15 +65,18 @@ pub fn new_element(
 
         let considered_point = ConsideredPoint::NewPoint(ideal_nod.expect("uh"));
 
-        if !node_validity_check(mesh, front, element_size, considered_point, base_edge) {
+        if !node_validity_check(mesh, front_parent, element_size, considered_point, base_edge) {
             // println!("Node not valid");
             break 'ideal_node;
         }
-        if !element_validity_check(mesh, front, base_edge, considered_point) {
-            // println!("Element not valid");
+        if !element_validity_check(mesh, front_parent, base_edge, considered_point) {
+            println!("Element not valid");
             break 'ideal_node;
         }
         let tan_a = node_suitability_check(mesh, base_edge, considered_point);
+        if tan_a <= 0. {
+            break 'ideal_node;
+        }
         if tan_a < f64::tan(30.)  {
             valid_points.push((considered_point, tan_a));
             break 'ideal_node;
@@ -82,22 +86,25 @@ pub fn new_element(
     }
 
     // Implement a choice based on the suitability criterion to enhance quality
-    let existing_candidates = find_existing_candidates(mesh, front, base_edge, element_size);
+    let existing_candidates = find_existing_candidates(mesh, front_parent, base_edge, element_size);
     
     for point in existing_candidates {
         // if let ConsideredPoint::OldPoint(id) = point {
         //     println!("{:?} {:?}", point, mesh.0.vertices(id));
         // }
         'point: {
-            if !node_validity_check(mesh, front, element_size, point, base_edge) {
+            if !node_validity_check(mesh, front_parent, element_size, point, base_edge) {
                 // println!("Node not valid");
                 break 'point;
             }
-            if !element_validity_check(mesh, front, base_edge, point) {
-                // println!("Element not valid");
+            if !element_validity_check(mesh, front_parent, base_edge, point) {
+                println!("Element not valid");
                 break 'point;
             }
             let tan_a = node_suitability_check(mesh, base_edge, point);
+            if tan_a <= 0. {
+                break 'point;
+            }
             if tan_a < f64::tan(30.)  {
                 valid_points.push((point, tan_a));
                 break 'point;
@@ -117,15 +124,18 @@ pub fn new_element(
             // if let ConsideredPoint::NewPoint(coord) = point {
             //     println!("{:?} {:?}", point, coord);
             // }
-            if !node_validity_check(mesh, front, element_size, point, base_edge) {
+            if !node_validity_check(mesh, front_parent, element_size, point, base_edge) {
                 // println!("Node not valid");
                 break 'point;
             }
-            if !element_validity_check(mesh, front, base_edge, point) {
+            if !element_validity_check(mesh, front_parent, base_edge, point) {
                 // println!("Element not valid");
                 break 'point;
             }
             let tan_a = node_suitability_check(mesh, base_edge, point);
+            if tan_a <= 0. {
+                break 'point;
+            }
             if tan_a < f64::tan(30.)  {
                 valid_points.push((point, tan_a));
                 break 'point;
@@ -200,11 +210,12 @@ pub fn ideal_node(
 
 pub fn node_validity_check(
     mesh: &Modifiable2DMesh,
-    front: &[ParentIndex],
+    front_parent: ParentIndex,
     element_size: f64,
     considered_point: ConsideredPoint,
     base_edge: HalfEdgeIndex,
 ) -> bool {
+    let proximity_admissibility = 0.67;
     if let ConsideredPoint::OldPoint(old_point) = considered_point {
         
         if (mesh.0.vertices_from_he(mesh.0.he_to_next_he()[mesh.0.he_to_twin()[base_edge]])[1] == old_point) & (mesh.0.vertices_from_he(mesh.0.he_to_prev_he()[mesh.0.he_to_twin()[base_edge]])[0] == old_point) {
@@ -213,28 +224,26 @@ pub fn node_validity_check(
         return true
     }
     let base_point = considered_point.coordinates(&mesh.0);
-
-    let min = 0.67 * 0.67 * element_size * element_size;
     
-    for parent in front {
-        for node in mesh.0.vertices_from_parent(*parent) {
-            let current_point = mesh.0.vertices(node);
-            if nalgebra::distance_squared(&base_point, &current_point) < min {
-                return false;
-            }
+    let min = proximity_admissibility*proximity_admissibility * element_size * element_size;
+    
+    for node in mesh.0.vertices_from_parent(front_parent) {
+        let current_point = mesh.0.vertices(node);
+        if nalgebra::distance_squared(&base_point, &current_point) < min {
+            return false;
         }
     }
-
+    
     true
 }
 
 pub fn element_validity_check(
     mesh: &Modifiable2DMesh,
-    front: &[ParentIndex],
+    front_parent: ParentIndex,
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
 ) -> bool {
-    triangle_intersect_front(&mesh.0, front, base_edge, considered_point)
+    !triangle_intersect_front(&mesh.0, front_parent, base_edge, considered_point)
 }
 
 pub fn node_suitability_check(
@@ -253,10 +262,10 @@ pub fn node_suitability_check(
     let base_edge_vec = mesh.0.he_vector(base_edge);
     let point = considered_point.coordinates(&mesh.0);
 
-    let t = base_edge_vec.dot(&Vector2::new(
+    let t = (base_edge_vec.dot(&Vector2::new(
         point.x - base_edge_vert.0.x,
         point.y - base_edge_vert.0.y,
-    )) / base_edge_vec.norm_squared();
+    )) / base_edge_vec.norm_squared()).abs();
     let theta = (t).max(t - 1.);
     let tan_a = Vector2::new(
         point.x - (base_edge_vert.0.x + t * base_edge_vec.x),
@@ -269,10 +278,10 @@ pub fn node_suitability_check(
     }
     let tan_a_old = tan_a;
 
-    let t = -base_edge_vec.dot(&Vector2::new(
+    let t = (base_edge_vec.dot(&Vector2::new(
         point.x - base_edge_vert.1.x,
         point.y - base_edge_vert.1.y,
-    )) / base_edge_vec.norm_squared();
+    )) / base_edge_vec.norm_squared()).abs();
     let theta = (t).max(t - 1.);
     let tan_a = Vector2::new(
         point.x - (base_edge_vert.1.x - t * base_edge_vec.x),
@@ -289,7 +298,7 @@ pub fn node_suitability_check(
 
 pub fn find_existing_candidates(
     mesh: &Modifiable2DMesh,
-    front: &[ParentIndex],
+    front_parent: ParentIndex,
     base_edge: HalfEdgeIndex,
     element_size: f64,
 ) -> Vec<ConsideredPoint> {
@@ -300,16 +309,14 @@ pub fn find_existing_candidates(
     ) / 2.;
 
     let mut candidates = vec![];
-    for &parent in front {
-        for point in mesh.0.vertices_from_parent(parent) {
-            if (base_edge_vert[0] != point) & (base_edge_vert[1] != point) {
-                let vert = mesh.0.vertices(point);
-                // Maybe *4 too small (*4*1.33*1.33 in the book but not same lhs)
-                if Vector2::new(vert.x - mid_base_edge.x, vert.y - mid_base_edge.y).norm_squared()
-                    < element_size * element_size * 4.
-                {
-                    candidates.push(ConsideredPoint::OldPoint(point))
-                }
+    for point in mesh.0.vertices_from_parent(front_parent) {
+        if (base_edge_vert[0] != point) & (base_edge_vert[1] != point) {
+            let vert = mesh.0.vertices(point);
+            // Maybe *4 too small (*4*1.33*1.33 in the book but not same lhs)
+            if Vector2::new(vert.x - mid_base_edge.x, vert.y - mid_base_edge.y).norm_squared()
+                < element_size * element_size * 4.
+            {
+                candidates.push(ConsideredPoint::OldPoint(point))
             }
         }
     }
@@ -356,6 +363,7 @@ pub fn add_element(
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
 ) -> Result<(), MeshError> {
+    println!("considered point: {:?} {:?}", considered_point, considered_point.coordinates(&mesh.0));
     let point_id = match considered_point {
         ConsideredPoint::NewPoint(point) => {
             let new_parent;
@@ -408,6 +416,7 @@ pub fn add_element(
     unsafe {
         new_parent1 = mesh.trimming((point_id, base_points[0]), front_parent)?;
     }
+    let front_parent = mesh.0.he_to_parent()[mesh.0.he_to_next_he()[base_edge]];
     unsafe {
         new_parent2 = mesh.trimming((point_id, base_points[1]), front_parent)?;
     }
