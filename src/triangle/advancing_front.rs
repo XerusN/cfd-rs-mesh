@@ -23,12 +23,11 @@ pub fn advancing_front(
     step_output: bool,
 ) -> Result<(), MeshError> {
     
-    fs::remove_dir_all("./output").unwrap();
-    fs::create_dir("output").unwrap();
+    
     
     let mut first_cell = None;
     
-    let max_it = 200;
+    let max_it = 200000;
     
     for (i, parent) in mesh.0.parents().iter().enumerate() {
         if parent == &mesh::Parent::Cell {
@@ -48,6 +47,8 @@ pub fn advancing_front(
 
     let mut i = 0;
     if step_output {
+        fs::remove_dir_all("./output").unwrap();
+        fs::create_dir("output").unwrap();
         mesh.0
             .export_vtk(format!("./output/advancing_{}.vtk", i).as_str())
             .expect("");
@@ -72,11 +73,9 @@ pub fn advancing_front(
         let first_edge = base_edge;
         let he_len = mesh.0.he_len();
         // println!("{:?}", mesh.0);
-        if i == 6 {
-            println!("{:?}", mesh.0)
-        }
+        
         loop {
-            println!("base edge: {:?} {:?} {:?} {:?}", base_edge, mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]), mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]), mesh.0.he_to_parent()[base_edge]);
+            //println!("base edge: {:?} {:?} {:?} {:?}", base_edge, mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]), mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]), mesh.0.he_to_parent()[base_edge]);
             let result = new_element(mesh, &mut front, base_edge, element_size);
             // if let Err(MeshError::NoElementCreatable(_)) = result {
             //     return Err(MeshError::NoElementCreatable(base_edge));

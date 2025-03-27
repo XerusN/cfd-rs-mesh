@@ -113,11 +113,11 @@ pub fn triangle_intersect_front(
     considered_point: ConsideredPoint,
 ) -> bool {
     let point = considered_point.coordinates(mesh);
-    println!("point: {:?}", point);
+    //println!("point: {:?}", point);
     // Might cause issue with ordering
     let egde1 = mesh.vertices_from_he(base_edge);
     let triangle = [mesh.vertices(egde1[0]), mesh.vertices(egde1[1]), point];
-    println!("Triangle: {:?}", triangle);
+    //println!("Triangle: {:?}", triangle);
     // Helps to have some assumptions later (points in trigonometric order)
     if half_plane(&[triangle[0], triangle[1]], &triangle[2]) <= 0. {
         return true
@@ -131,10 +131,10 @@ pub fn triangle_intersect_front(
                 continue 'half_edge;
             }
         }
-        println!("Tested edge: {:?}", edge);
+        //println!("Tested edge: {:?}", edge);
         if edge_intersect_triangle(&triangle, &edge) {
-            println!("Intersecting edge!");
-            println!();
+            //println!("Intersecting edge!");
+            //println!();
             return true;
         }
     }

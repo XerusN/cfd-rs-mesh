@@ -70,7 +70,7 @@ pub fn new_element(
             break 'ideal_node;
         }
         if !element_validity_check(mesh, front_parent, base_edge, considered_point) {
-            println!("Element not valid");
+            //println!("Element not valid");
             break 'ideal_node;
         }
         let tan_a = node_suitability_check(mesh, base_edge, considered_point);
@@ -98,7 +98,7 @@ pub fn new_element(
                 break 'point;
             }
             if !element_validity_check(mesh, front_parent, base_edge, point) {
-                println!("Element not valid");
+                //println!("Element not valid");
                 break 'point;
             }
             let tan_a = node_suitability_check(mesh, base_edge, point);
@@ -183,7 +183,7 @@ pub fn ideal_node(
 
     let mut alpha = (-prev_edge.1.0).angle(&base_edge.0).abs();
     let mut beta = (-next_edge.1.0).angle(&base_edge.0).abs();
-    println!("alpha, beta : {:?} {:?} {:?}", alpha, beta, PI);
+    //println!("alpha, beta : {:?} {:?} {:?}", alpha, beta, PI);
 
     if alpha > beta {
         std::mem::swap(&mut alpha, &mut beta);
@@ -197,8 +197,8 @@ pub fn ideal_node(
             element_size * (PI / 4.).cos(),
             element_size * (PI / 4.).sin(),
         ));
-        println!("ideal node normalized {:?}", node);
-        println!("ideal node {:?}", Point2::from_normalized_space(&node, &space_normalization));
+        //println!("ideal node normalized {:?}", node);
+        //println!("ideal node {:?}", Point2::from_normalized_space(&node, &space_normalization));
         return Some(Point2::from_normalized_space(&node, &space_normalization));
     }
     let alpha_deg = alpha*180./PI;
@@ -207,8 +207,8 @@ pub fn ideal_node(
     let phi_a = alpha_deg / (alpha_deg / 60.).round() * PI/180.;
     let phi_b = beta_deg / (beta_deg / 60.).round() * PI/180.;
     let node = SpaceNormalized(Point2::new(phi_a.cos() - phi_b.cos(), phi_a.sin() - phi_b.sin()) * element_size / 2.);
-    println!("ideal node normalized {:?}", node);
-    println!("ideal node {:?}", Point2::from_normalized_space(&node, &space_normalization));
+    //println!("ideal node normalized {:?}", node);
+    //println!("ideal node {:?}", Point2::from_normalized_space(&node, &space_normalization));
     Some(Point2::from_normalized_space(&node, &space_normalization))
 }
 
@@ -306,6 +306,7 @@ pub fn find_existing_candidates(
     base_edge: HalfEdgeIndex,
     element_size: f64,
 ) -> Vec<ConsideredPoint> {
+    let rel_radius = 1.33;
     let base_edge_vert = mesh.0.vertices_from_he(base_edge);
     let mid_base_edge = Point2::new(
         mesh.0.vertices(base_edge_vert[0]).x + mesh.0.vertices(base_edge_vert[1]).x,
@@ -318,7 +319,7 @@ pub fn find_existing_candidates(
             let vert = mesh.0.vertices(point);
             // Maybe *4 too small (*4*1.33*1.33 in the book but not same lhs)
             if Vector2::new(vert.x - mid_base_edge.x, vert.y - mid_base_edge.y).norm_squared()
-                < element_size * element_size * 4.
+                < element_size * element_size * rel_radius*rel_radius
             {
                 candidates.push(ConsideredPoint::OldPoint(point))
             }
@@ -366,7 +367,7 @@ pub fn add_element(
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
 ) -> Result<(), MeshError> {
-    println!("considered point: {:?} {:?}", considered_point, considered_point.coordinates(&mesh.0));
+    //println!("considered point: {:?} {:?}", considered_point, considered_point.coordinates(&mesh.0));
     let point_id = match considered_point {
         ConsideredPoint::NewPoint(point) => {
             let new_parent;
