@@ -28,38 +28,58 @@ fn simple_mesh() -> Modifiable2DMesh {
 
 
 #[test]
-// No tesst for points yet
+// No tests for points yet
 fn space_normalization_test() {
     
     let mesh = simple_mesh();
-    let he = HalfEdgeIndex(2);
     
-    let space = NormalizedSpace::new(&mesh.0, he);
-    let he_vec = mesh.0.he_vector(he);
-    let he_vec_norm = he_vec.to_normalized_space(&space);
-    let prev = mesh.0.he_to_prev_he()[he];
-    let prev_vec = mesh.0.he_vector(prev);
-    let prev_vec_norm = prev_vec.to_normalized_space(&space);
-    println!("prev {:?} {:?}", prev, prev_vec);
+    for i in 0..mesh.0.he_len(){
+        let he = HalfEdgeIndex(i);
+        
+        let space = NormalizedSpace::new(&mesh.0, he);
+        
+        // Vec tests
+        let he_vec = mesh.0.he_vector(he);
+        let he_vec_norm = he_vec.to_normalized_space(&space);
+        let prev = mesh.0.he_to_prev_he()[he];
+        let prev_vec = mesh.0.he_vector(prev);
+        let prev_vec_norm = prev_vec.to_normalized_space(&space);
+        println!("prev {:?} {:?}", prev, prev_vec);
+        
+        println!("prev {:?} {:?}", he_vec_norm, prev_vec_norm);
+        // Checks that the angle is conserved (invalid if stretching is implemented)
+        if he_vec.angle(&prev_vec) != he_vec_norm.0.angle(&prev_vec_norm.0) {
+            panic!("Angle not conserved by normalization: {:?} and normalized {:?}", he_vec.angle(&prev_vec), he_vec_norm.0.angle(&prev_vec_norm.0));
+        };
+        
+        let vec = Vector2::new(0.5, 1.8);
+        let vec_norm = vec.to_normalized_space(&space);
+        // Checks that the angle is conserved (invalid if stretching is implemented)
+        println!("vec {:?} {:?}", he_vec_norm, vec_norm);
+        if he_vec.angle(&vec) != he_vec_norm.0.angle(&vec_norm.0) {
+            panic!("Angle not conserved by normalization: {:?} and normalized {:?}", he_vec.angle(&vec), he_vec_norm.0.angle(&vec_norm.0));
+        };
+        
+        // Checks that the vector is the same after normalization and inverse
+        if vec != Vector2::from_normalized_space(&vec_norm, &space) {
+            panic!("Not equal after normalization and inverse: {:?} and {:?}", vec, Vector2::from_normalized_space(&vec_norm, &space));
+        };
+        
+        //Points test
+        let he_vertices = mesh.0.vertices_from_he(he);
+        let he_vertices = [mesh.0.vertices(he_vertices[0]), mesh.0.vertices(he_vertices[1])];
+        //Middle point of the base edge
+        let point = Point2::new(he_vertices[0].x + he_vec.x/2., he_vertices[0].y + he_vec.y/2.);
+        let point_norm = point.to_normalized_space(&space);
+        assert_eq!(point_norm.0, Point2::origin());
+        assert_eq!(point, Point2::from_normalized_space(&point_norm, &space));
+        //Random point
+        let point = Point2::new(0.654, -7.6);
+        let point_norm = point.to_normalized_space(&space);
+        assert_eq!(point, Point2::from_normalized_space(&point_norm, &space));
+    }
+        
     
-    println!("prev {:?} {:?}", he_vec_norm, prev_vec_norm);
-    // Checks that the angle is conserved (invalid if stretching is implemented)
-    if he_vec.angle(&prev_vec) != he_vec_norm.0.angle(&prev_vec_norm.0) {
-        panic!("Angle not conserved by normalization: {:?} and normalized {:?}", he_vec.angle(&prev_vec), he_vec_norm.0.angle(&prev_vec_norm.0));
-    };
-    
-    let vec = Vector2::new(0.5, 1.8);
-    let vec_norm = vec.to_normalized_space(&space);
-    // Checks that the angle is conserved (invalid if stretching is implemented)
-    println!("vec {:?} {:?}", he_vec_norm, vec_norm);
-    if he_vec.angle(&vec) != he_vec_norm.0.angle(&vec_norm.0) {
-        panic!("Angle not conserved by normalization: {:?} and normalized {:?}", he_vec.angle(&vec), he_vec_norm.0.angle(&vec_norm.0));
-    };
-    
-    // Checks that the vector is the same after normalization and inverse
-    if vec != Vector2::from_normalized_space(&vec_norm, &space) {
-        panic!("Not equal after normalization and inverse: {:?} and {:?}", vec, Vector2::from_normalized_space(&vec_norm, &space));
-    };
     
 }
 

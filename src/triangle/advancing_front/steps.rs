@@ -114,11 +114,7 @@ pub fn new_element(
         }
     }
 
-    // Implement a choice based on the suitability criterion to enhance quality
-    if ideal_nod.is_none() {
-        return Err(MeshError::NoElementCreatable(base_edge));
-    }
-    let trie_vertices = create_trie_vertices(mesh, base_edge, ideal_nod.expect("uh"), 4);
+    let trie_vertices = create_trie_vertices(mesh, base_edge, element_size);
     for point in trie_vertices {
         'point: {
             // if let ConsideredPoint::NewPoint(coord) = point {
@@ -185,8 +181,9 @@ pub fn ideal_node(
             .to_normalized_space(&space_normalization),
     );
 
-    let mut alpha = prev_edge.1.0.angle(&base_edge.0).abs();
+    let mut alpha = (-prev_edge.1.0).angle(&base_edge.0).abs();
     let mut beta = (-next_edge.1.0).angle(&base_edge.0).abs();
+    println!("alpha, beta : {:?} {:?} {:?}", alpha, beta, PI);
 
     if alpha > beta {
         std::mem::swap(&mut alpha, &mut beta);
@@ -196,16 +193,23 @@ pub fn ideal_node(
         return None;
     }
     if (alpha < PI * 91. / 180.) && (alpha > PI * 89. / 180.) {
-        return Some(Point2::new(
+        let node = SpaceNormalized(Point2::new(
             element_size * (PI / 4.).cos(),
             element_size * (PI / 4.).sin(),
         ));
+        println!("ideal node normalized {:?}", node);
+        println!("ideal node {:?}", Point2::from_normalized_space(&node, &space_normalization));
+        return Some(Point2::from_normalized_space(&node, &space_normalization));
     }
-
-    let phi_a = alpha / (alpha / (PI / 3.)).round();
-    let phi_b = beta / (beta / (PI / 3.)).round();
-
-    Some(Point2::new(phi_a.cos() - phi_b.cos(), phi_a.sin() - phi_b.sin()) * element_size / 2.)
+    let alpha_deg = alpha*180./PI;
+    let beta_deg = beta*180./PI;
+    
+    let phi_a = alpha_deg / (alpha_deg / 60.).round() * PI/180.;
+    let phi_b = beta_deg / (beta_deg / 60.).round() * PI/180.;
+    let node = SpaceNormalized(Point2::new(phi_a.cos() - phi_b.cos(), phi_a.sin() - phi_b.sin()) * element_size / 2.);
+    println!("ideal node normalized {:?}", node);
+    println!("ideal node {:?}", Point2::from_normalized_space(&node, &space_normalization));
+    Some(Point2::from_normalized_space(&node, &space_normalization))
 }
 
 pub fn node_validity_check(
@@ -327,29 +331,28 @@ pub fn find_existing_candidates(
 pub fn create_trie_vertices(
     mesh: &Modifiable2DMesh,
     base_edge: HalfEdgeIndex,
-    // element_size: f64,
-    ideal_node: Point2<f64>,
-    number_trie_vertices: usize,
+    element_size: f64,
 ) -> Vec<ConsideredPoint> {
-    let base_edge_vert = mesh.0.vertices_from_he(base_edge);
-    let mid_base_edge = Point2::new(
-        mesh.0.vertices(base_edge_vert[0]).x + mesh.0.vertices(base_edge_vert[1]).x,
-        mesh.0.vertices(base_edge_vert[0]).y + mesh.0.vertices(base_edge_vert[1]).y,
-    ) / 2.;
-
-    let mut trie_vertices = vec![];
-    for i in 0..(number_trie_vertices + 1) {
-        trie_vertices.push(ConsideredPoint::NewPoint(Point2::new(
-            mid_base_edge.x
-                + (ideal_node.x - mid_base_edge.x) * ((i + 1) as f64)
-                    / ((number_trie_vertices + 1) as f64),
-            mid_base_edge.y
-                + ((ideal_node.y - mid_base_edge.y) * (i + 1) as f64)
-                    / ((number_trie_vertices + 1) as f64),
-        )))
-    }
-
-    trie_vertices
+    let space_normalization = NormalizedSpace::new(&mesh.0, base_edge);
+    let base_edge_vec = mesh
+        .0
+        .he_vector(base_edge)
+        .to_normalized_space(&space_normalization);
+    
+    let trie_norm_space = vec![
+        SpaceNormalized(Point2::new(0., element_size)),
+        SpaceNormalized(Point2::new(0., element_size*0.5)),
+        SpaceNormalized(Point2::new(0., element_size*0.5+1./6.)),
+        SpaceNormalized(Point2::new(0., element_size*0.5+1./3.)),
+        SpaceNormalized(Point2::new(base_edge_vec.0.x/3., element_size*0.6)),
+        SpaceNormalized(Point2::new(base_edge_vec.0.x/3., element_size*0.9)),
+        SpaceNormalized(Point2::new(-base_edge_vec.0.x/3., element_size*0.6)),
+        SpaceNormalized(Point2::new(-base_edge_vec.0.x/3., element_size*0.9))
+    ];
+    
+    trie_norm_space.iter().map(|vert_norm| ConsideredPoint::NewPoint(Point2::from_normalized_space(vert_norm, &space_normalization))).collect()
+    
+    
 }
 
 /// Once the quality and validity is checked modifies the data structure to add the new element
