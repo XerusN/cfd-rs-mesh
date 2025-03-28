@@ -275,22 +275,26 @@ pub fn node_suitability_check(
         mesh.0.vertices(base_edge_vert[1]),
     );
     let point = considered_point.coordinates(&mesh.0);
-    
+
     let mut tan_a = tan_alpha_suitability(&[point, base_edge_vert.0, base_edge_vert.1]);
-    tan_a = tan_a.min(tan_alpha_suitability(&[base_edge_vert.0, base_edge_vert.1, point]));
-    tan_a.min(tan_alpha_suitability(&[base_edge_vert.1, point, base_edge_vert.0]))
+    tan_a = tan_a.min(tan_alpha_suitability(&[
+        base_edge_vert.0,
+        base_edge_vert.1,
+        point,
+    ]));
+    tan_a.min(tan_alpha_suitability(&[
+        base_edge_vert.1,
+        point,
+        base_edge_vert.0,
+    ]))
 }
 
 pub fn tan_alpha_suitability(points: &[Point2<f64>]) -> f64 {
-    
-    
     let point = points[2];
     let base_edge_vec = Vector2::new(points[1].x - points[0].x, points[1].y - points[0].y);
-    
-    let t = (base_edge_vec.dot(&Vector2::new(
-        point.x - points[0].x,
-        point.y - points[0].y,
-    )) / base_edge_vec.norm_squared())
+
+    let t = (base_edge_vec.dot(&Vector2::new(point.x - points[0].x, point.y - points[0].y))
+        / base_edge_vec.norm_squared())
     .abs();
     let theta = (t).max(t - 1.);
     let tan_a = Vector2::new(
@@ -299,7 +303,7 @@ pub fn tan_alpha_suitability(points: &[Point2<f64>]) -> f64 {
     )
     .norm()
         / (theta * base_edge_vec.norm());
-    
+
     tan_a
 }
 

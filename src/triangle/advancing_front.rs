@@ -91,8 +91,7 @@ pub fn advancing_front(
             }
         }
         //println!("mesh: {:?}", mesh);
-
-        println!("new edges: {:?}", (mesh.0.he_len() - he_len) / 2);
+        
         println!();
 
         if step_output {
