@@ -47,12 +47,13 @@ pub fn element_size(mesh_size: f64) -> f64 {
     mesh_size
 }
 
+/// Returns the newly created triangles
 pub fn new_element(
     mesh: &mut Modifiable2DMesh,
     front: &mut Vec<ParentIndex>,
     base_edge: HalfEdgeIndex,
     element_size: f64,
-) -> Result<(), MeshError> {
+) -> Result<Vec<ParentIndex>, MeshError> {
     let ideal_nod;
     let mut valid_points = vec![];
     let front_parent = mesh.0.he_to_parent()[base_edge];
@@ -369,7 +370,8 @@ pub fn create_trie_vertices(
         .collect()
 }
 
-/// Once the quality and validity is checked modifies the data structure to add the new element
+/// Once the quality and validity is checked modifies the data structure to add the new element.
+/// Returns the newly created triangles
 ///
 /// # Warning
 ///
@@ -379,7 +381,7 @@ pub fn add_element(
     front: &mut Vec<ParentIndex>,
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
-) -> Result<(), MeshError> {
+) -> Result<Vec<ParentIndex>, MeshError> {
     //println!("considered point: {:?} {:?}", considered_point, considered_point.coordinates(&mesh.0));
     let point_id = match considered_point {
         ConsideredPoint::NewPoint(point) => {
@@ -387,8 +389,7 @@ pub fn add_element(
             unsafe { new_parent = mesh.notching(base_edge, point)? };
             // If useless parent added it will get removed
             front.push(new_parent);
-            clean_front(&mesh.0, front);
-            return Ok(());
+            return Ok(clean_front(&mesh.0, front));
         }
         ConsideredPoint::OldPoint(point_id) => point_id,
     };
@@ -405,8 +406,7 @@ pub fn add_element(
             )?;
         }
         front.push(new_parent);
-        clean_front(&mesh.0, front);
-        return Ok(());
+        return Ok(clean_front(&mesh.0, front));
     }
     if mesh.0.vertices_from_he(mesh.0.he_to_prev_he()[base_edge])[0] == point_id {
         let front_parent = mesh.0.he_to_parent()[base_edge];
@@ -419,8 +419,7 @@ pub fn add_element(
             )?;
         }
         front.push(new_parent);
-        clean_front(&mesh.0, front);
-        return Ok(());
+        return Ok(clean_front(&mesh.0, front));
     }
 
     // Only remains the case where both edge have to be created toward an old point, right?
@@ -439,11 +438,15 @@ pub fn add_element(
     }
     front.push(new_parent1);
     front.push(new_parent2);
-    clean_front(&mesh.0, front);
 
-    Ok(())
+    Ok(clean_front(&mesh.0, front))
 }
 
-pub fn clean_front(mesh: &Base2DMesh, front: &mut Vec<ParentIndex>) {
+pub fn clean_front(mesh: &Base2DMesh, front: &mut Vec<ParentIndex>) -> Vec<ParentIndex> {
+    let stack = front
+        .clone().into_iter()
+        .filter(|&parent| !(mesh.vertices_from_parent(parent).len() > 3))
+        .collect();
     front.retain(|&parent| mesh.vertices_from_parent(parent).len() > 3);
+    stack
 }

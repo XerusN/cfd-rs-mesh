@@ -5,6 +5,8 @@ use mesh::Modifiable2DMesh;
 use std::fs;
 use steps::*;
 
+use crate::triangle::delaunay::delaunay_check_and_swap;
+
 pub mod steps;
 pub mod utils;
 
@@ -73,9 +75,11 @@ pub fn advancing_front(
         let he_len = mesh.0.he_len();
         // println!("{:?}", mesh.0);
 
+        let mut result;
+
         loop {
             //println!("base edge: {:?} {:?} {:?} {:?}", base_edge, mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]), mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]), mesh.0.he_to_parent()[base_edge]);
-            let result = new_element(mesh, &mut front, base_edge, element_size);
+            result = new_element(mesh, &mut front, base_edge, element_size);
             // if let Err(MeshError::NoElementCreatable(_)) = result {
             //     return Err(MeshError::NoElementCreatable(base_edge));
             // }
@@ -84,14 +88,27 @@ pub fn advancing_front(
                 if base_edge == first_edge {
                     return Err(MeshError::NoElementCreatable(base_edge));
                 }
-            } else if result.is_err() {
-                return result;
+            } else if let Err(err) = result {
+                return Err(err);
             } else {
                 break;
             }
         }
         //println!("mesh: {:?}", mesh);
-        
+
+        if let Ok(mut stack) = result {
+            println!("Delaunay");
+            loop {
+                if stack.is_empty() {
+                    break;
+                }
+
+                delaunay_check_and_swap(mesh, &mut stack)?;
+
+                println!("Stack size: {:?}", stack.len());
+            }
+        }
+
         println!();
 
         if step_output {
