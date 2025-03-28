@@ -32,11 +32,15 @@ fn refine_boundary_test1() {
     let base_len = mesh.0.he_len();
     refine_boundary(&mut mesh, 0.09);
     assert!(mesh.0.he_len() > base_len * 5);
-    
+
     let mut mesh = simple_mesh();
-    mesh.0.export_vtk("./output/test_0.vtk").expect("Error in export");
+    mesh.0
+        .export_vtk("./output/test_0.vtk")
+        .expect("Error in export");
     refine_boundary(&mut mesh, 0.5);
-    mesh.0.export_vtk("./output/test_1.vtk").expect("Error in export");
+    mesh.0
+        .export_vtk("./output/test_1.vtk")
+        .expect("Error in export");
     println!("{:?}", mesh);
 }
 
@@ -61,7 +65,7 @@ fn ideal_node_test() {
         .expect("No Half edge in first found cell");
 
     let node = ideal_node(&mesh, base_edge, element_size);
-    
+
     match node {
         None => panic!("No ideal node created"),
         Some(node) => {

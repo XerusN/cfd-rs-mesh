@@ -54,7 +54,7 @@ pub fn new_element(
     element_size: f64,
 ) -> Result<(), MeshError> {
     let ideal_nod;
-    let mut valid_points = vec!();
+    let mut valid_points = vec![];
     let front_parent = mesh.0.he_to_parent()[base_edge];
     'ideal_node: {
         ideal_nod = ideal_node(mesh, base_edge, element_size);
@@ -65,7 +65,13 @@ pub fn new_element(
 
         let considered_point = ConsideredPoint::NewPoint(ideal_nod.expect("uh"));
 
-        if !node_validity_check(mesh, front_parent, element_size, considered_point, base_edge) {
+        if !node_validity_check(
+            mesh,
+            front_parent,
+            element_size,
+            considered_point,
+            base_edge,
+        ) {
             // println!("Node not valid");
             break 'ideal_node;
         }
@@ -77,7 +83,7 @@ pub fn new_element(
         if tan_a <= 0. {
             break 'ideal_node;
         }
-        if tan_a < f64::tan(30.)  {
+        if tan_a < f64::tan(30.) {
             valid_points.push((considered_point, tan_a));
             break 'ideal_node;
         }
@@ -87,7 +93,7 @@ pub fn new_element(
 
     // Implement a choice based on the suitability criterion to enhance quality
     let existing_candidates = find_existing_candidates(mesh, front_parent, base_edge, element_size);
-    
+
     for point in existing_candidates {
         // if let ConsideredPoint::OldPoint(id) = point {
         //     println!("{:?} {:?}", point, mesh.0.vertices(id));
@@ -105,7 +111,7 @@ pub fn new_element(
             if tan_a <= 0. {
                 break 'point;
             }
-            if tan_a < f64::tan(30.)  {
+            if tan_a < f64::tan(30.) {
                 valid_points.push((point, tan_a));
                 break 'point;
             }
@@ -132,7 +138,7 @@ pub fn new_element(
             if tan_a <= 0. {
                 break 'point;
             }
-            if tan_a < f64::tan(30.)  {
+            if tan_a < f64::tan(30.) {
                 valid_points.push((point, tan_a));
                 break 'point;
             }
@@ -140,9 +146,9 @@ pub fn new_element(
             return add_element(mesh, front, base_edge, point);
         }
     }
-    
+
     if valid_points.is_empty() {
-        return Err(MeshError::NoElementCreatable(base_edge))
+        Err(MeshError::NoElementCreatable(base_edge))
     } else {
         let mut max = (0, valid_points[0].1);
         for (i, valid) in valid_points.iter().enumerate() {
@@ -150,10 +156,8 @@ pub fn new_element(
                 max = (i, valid.1);
             }
         }
-        return add_element(mesh, front, base_edge, valid_points[max.0].0)
+        add_element(mesh, front, base_edge, valid_points[max.0].0)
     }
-
-    
 }
 
 /// Based on J. Frysketig, 1994.
@@ -181,8 +185,8 @@ pub fn ideal_node(
             .to_normalized_space(&space_normalization),
     );
 
-    let mut alpha = (-prev_edge.1.0).angle(&base_edge.0).abs();
-    let mut beta = (-next_edge.1.0).angle(&base_edge.0).abs();
+    let mut alpha = (-prev_edge.1 .0).angle(&base_edge.0).abs();
+    let mut beta = (-next_edge.1 .0).angle(&base_edge.0).abs();
     //println!("alpha, beta : {:?} {:?} {:?}", alpha, beta, PI);
 
     if alpha > beta {
@@ -201,12 +205,14 @@ pub fn ideal_node(
         //println!("ideal node {:?}", Point2::from_normalized_space(&node, &space_normalization));
         return Some(Point2::from_normalized_space(&node, &space_normalization));
     }
-    let alpha_deg = alpha*180./PI;
-    let beta_deg = beta*180./PI;
-    
-    let phi_a = alpha_deg / (alpha_deg / 60.).round() * PI/180.;
-    let phi_b = beta_deg / (beta_deg / 60.).round() * PI/180.;
-    let node = SpaceNormalized(Point2::new(phi_a.cos() - phi_b.cos(), phi_a.sin() - phi_b.sin()) * element_size / 2.);
+    let alpha_deg = alpha * 180. / PI;
+    let beta_deg = beta * 180. / PI;
+
+    let phi_a = alpha_deg / (alpha_deg / 60.).round() * PI / 180.;
+    let phi_b = beta_deg / (beta_deg / 60.).round() * PI / 180.;
+    let node = SpaceNormalized(
+        Point2::new(phi_a.cos() - phi_b.cos(), phi_a.sin() - phi_b.sin()) * element_size / 2.,
+    );
     //println!("ideal node normalized {:?}", node);
     //println!("ideal node {:?}", Point2::from_normalized_space(&node, &space_normalization));
     Some(Point2::from_normalized_space(&node, &space_normalization))
@@ -221,23 +227,30 @@ pub fn node_validity_check(
 ) -> bool {
     let proximity_admissibility = 0.67;
     if let ConsideredPoint::OldPoint(old_point) = considered_point {
-        
-        if (mesh.0.vertices_from_he(mesh.0.he_to_next_he()[mesh.0.he_to_twin()[base_edge]])[1] == old_point) & (mesh.0.vertices_from_he(mesh.0.he_to_prev_he()[mesh.0.he_to_twin()[base_edge]])[0] == old_point) {
-            return false
+        if (mesh
+            .0
+            .vertices_from_he(mesh.0.he_to_next_he()[mesh.0.he_to_twin()[base_edge]])[1]
+            == old_point)
+            & (mesh
+                .0
+                .vertices_from_he(mesh.0.he_to_prev_he()[mesh.0.he_to_twin()[base_edge]])[0]
+                == old_point)
+        {
+            return false;
         }
-        return true
+        return true;
     }
     let base_point = considered_point.coordinates(&mesh.0);
-    
-    let min = proximity_admissibility*proximity_admissibility * element_size * element_size;
-    
+
+    let min = proximity_admissibility * proximity_admissibility * element_size * element_size;
+
     for node in mesh.0.vertices_from_parent(front_parent) {
         let current_point = mesh.0.vertices(node);
         if nalgebra::distance_squared(&base_point, &current_point) < min {
             return false;
         }
     }
-    
+
     true
 }
 
@@ -269,7 +282,8 @@ pub fn node_suitability_check(
     let t = (base_edge_vec.dot(&Vector2::new(
         point.x - base_edge_vert.0.x,
         point.y - base_edge_vert.0.y,
-    )) / base_edge_vec.norm_squared()).abs();
+    )) / base_edge_vec.norm_squared())
+    .abs();
     let theta = (t).max(t - 1.);
     let tan_a = Vector2::new(
         point.x - (base_edge_vert.0.x + t * base_edge_vec.x),
@@ -285,7 +299,8 @@ pub fn node_suitability_check(
     let t = (base_edge_vec.dot(&Vector2::new(
         point.x - base_edge_vert.1.x,
         point.y - base_edge_vert.1.y,
-    )) / base_edge_vec.norm_squared()).abs();
+    )) / base_edge_vec.norm_squared())
+    .abs();
     let theta = (t).max(t - 1.);
     let tan_a = Vector2::new(
         point.x - (base_edge_vert.1.x - t * base_edge_vec.x),
@@ -296,7 +311,7 @@ pub fn node_suitability_check(
     if tan_a < tan_30 {
         return tan_a;
     }
-    
+
     tan_a.max(tan_a_old)
 }
 
@@ -319,7 +334,7 @@ pub fn find_existing_candidates(
             let vert = mesh.0.vertices(point);
             // Maybe *4 too small (*4*1.33*1.33 in the book but not same lhs)
             if Vector2::new(vert.x - mid_base_edge.x, vert.y - mid_base_edge.y).norm_squared()
-                < element_size * element_size * rel_radius*rel_radius
+                < element_size * element_size * rel_radius * rel_radius
             {
                 candidates.push(ConsideredPoint::OldPoint(point))
             }
@@ -339,21 +354,27 @@ pub fn create_trie_vertices(
         .0
         .he_vector(base_edge)
         .to_normalized_space(&space_normalization);
-    
-    let trie_norm_space = vec![
+
+    let trie_norm_space = [
         SpaceNormalized(Point2::new(0., element_size)),
-        SpaceNormalized(Point2::new(0., element_size*0.5)),
-        SpaceNormalized(Point2::new(0., element_size*0.5+1./6.)),
-        SpaceNormalized(Point2::new(0., element_size*0.5+1./3.)),
-        SpaceNormalized(Point2::new(base_edge_vec.0.x/3., element_size*0.6)),
-        SpaceNormalized(Point2::new(base_edge_vec.0.x/3., element_size*0.9)),
-        SpaceNormalized(Point2::new(-base_edge_vec.0.x/3., element_size*0.6)),
-        SpaceNormalized(Point2::new(-base_edge_vec.0.x/3., element_size*0.9))
+        SpaceNormalized(Point2::new(0., element_size * 0.5)),
+        SpaceNormalized(Point2::new(0., element_size * 0.5 + 1. / 6.)),
+        SpaceNormalized(Point2::new(0., element_size * 0.5 + 1. / 3.)),
+        SpaceNormalized(Point2::new(base_edge_vec.0.x / 3., element_size * 0.6)),
+        SpaceNormalized(Point2::new(base_edge_vec.0.x / 3., element_size * 0.9)),
+        SpaceNormalized(Point2::new(-base_edge_vec.0.x / 3., element_size * 0.6)),
+        SpaceNormalized(Point2::new(-base_edge_vec.0.x / 3., element_size * 0.9)),
     ];
-    
-    trie_norm_space.iter().map(|vert_norm| ConsideredPoint::NewPoint(Point2::from_normalized_space(vert_norm, &space_normalization))).collect()
-    
-    
+
+    trie_norm_space
+        .iter()
+        .map(|vert_norm| {
+            ConsideredPoint::NewPoint(Point2::from_normalized_space(
+                vert_norm,
+                &space_normalization,
+            ))
+        })
+        .collect()
 }
 
 /// Once the quality and validity is checked modifies the data structure to add the new element

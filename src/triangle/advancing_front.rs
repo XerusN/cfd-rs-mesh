@@ -2,8 +2,8 @@ use cfd_rs_utils::*;
 use errors::MeshError;
 use mesh::indices::*;
 use mesh::Modifiable2DMesh;
-use steps::*;
 use std::fs;
+use steps::*;
 
 pub mod steps;
 pub mod utils;
@@ -22,13 +22,10 @@ pub fn advancing_front(
     element_size: f64,
     step_output: bool,
 ) -> Result<(), MeshError> {
-    
-    
-    
     let mut first_cell = None;
-    
+
     let max_it = 200000;
-    
+
     for (i, parent) in mesh.0.parents().iter().enumerate() {
         if parent == &mesh::Parent::Cell {
             first_cell = Some(ParentIndex(i))
@@ -54,11 +51,10 @@ pub fn advancing_front(
             .expect("");
     }
     loop {
-        
         if front.is_empty() {
             break;
         }
-        
+
         i += 1;
         if i > max_it {
             return Err(MeshError::MaxIterationReached { max_it });
@@ -66,14 +62,17 @@ pub fn advancing_front(
         println!(
             "{:?}) Front size : {:?}",
             i,
-            front.iter().map(|&parent| mesh.0.he_from_parent(parent).len()).collect::<Vec<usize>>()
+            front
+                .iter()
+                .map(|&parent| mesh.0.he_from_parent(parent).len())
+                .collect::<Vec<usize>>()
         );
 
         let mut base_edge = select_base_edge(mesh, &front);
         let first_edge = base_edge;
         let he_len = mesh.0.he_len();
         // println!("{:?}", mesh.0);
-        
+
         loop {
             //println!("base edge: {:?} {:?} {:?} {:?}", base_edge, mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]), mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]), mesh.0.he_to_parent()[base_edge]);
             let result = new_element(mesh, &mut front, base_edge, element_size);
@@ -85,29 +84,29 @@ pub fn advancing_front(
                 if base_edge == first_edge {
                     return Err(MeshError::NoElementCreatable(base_edge));
                 }
-            } else if let Err(_) = result {
+            } else if result.is_err() {
                 return result;
             } else {
                 break;
             }
         }
         //println!("mesh: {:?}", mesh);
-        
-        println!("new edges: {:?}", (mesh.0.he_len() - he_len)/2);
+
+        println!("new edges: {:?}", (mesh.0.he_len() - he_len) / 2);
         println!();
-        
+
         if step_output {
             mesh.0
                 .export_vtk(format!("./output/advancing_{}.vtk", i).as_str())
                 .expect("");
         }
-        
+
         let check = mesh.0.check_mesh();
         if let Err(error) = check {
             panic!("{:?}", error)
         }
     }
-    
+
     println!("------------------------------------------------");
     println!("                Meshing complete                ");
 

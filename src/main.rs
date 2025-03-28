@@ -3,8 +3,8 @@ use cfd_rs_utils::{
     mesh::{indices::*, Modifiable2DMesh, *},
 };
 use nalgebra::Point2;
-use triangle::advancing_front::*;
 use std::f64::consts::PI;
+use triangle::advancing_front::*;
 
 pub mod triangle;
 
@@ -39,12 +39,17 @@ fn circle_mesh() -> (Modifiable2DMesh, f64) {
     let mut vertices = vec![];
     let mut edge_to_vertices_and_parent = vec![];
     for i in 0..n {
-        let angle = 2.*PI * i as f64 / n as f64;
+        let angle = 2. * PI * i as f64 / n as f64;
         vertices.push(Point2::new(angle.cos(), angle.sin()));
-        edge_to_vertices_and_parent.push((VertexIndex(i), VertexIndex((i+1) % n), ParentIndex(0)));
+        edge_to_vertices_and_parent.push((
+            VertexIndex(i),
+            VertexIndex((i + 1) % n),
+            ParentIndex(0),
+        ));
     }
-    
-    let element_size = ((vertices[0].x - vertices[1].x).powi(2) + (vertices[0].y - vertices[1].y).powi(2)).sqrt();
+
+    let element_size =
+        ((vertices[0].x - vertices[1].x).powi(2) + (vertices[0].y - vertices[1].y).powi(2)).sqrt();
 
     let mesh;
 

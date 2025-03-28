@@ -120,9 +120,9 @@ pub fn triangle_intersect_front(
     //println!("Triangle: {:?}", triangle);
     // Helps to have some assumptions later (points in trigonometric order)
     if half_plane(&[triangle[0], triangle[1]], &triangle[2]) <= 0. {
-        return true
+        return true;
     }
-    
+
     'half_edge: for he in mesh.he_from_parent(front_parent) {
         let edge = mesh.vertices_from_he(he);
         let edge = [mesh.vertices(edge[0]), mesh.vertices(edge[1])];
@@ -151,22 +151,23 @@ pub fn edge_intersect_triangle(triangle: &[Point2<f64>], edge: &[Point2<f64>]) -
             return false;
         }
     }
-    
+
     for i in 0..3 {
         for j in 0..2 {
             if edge[j] == triangle[i] {
-                if (edge[(j + 1) % 2] == triangle[(i + 1) % 3]) | (edge[(j + 1) % 2] == triangle[(i + 2) % 3]) {
-                    return true
+                if (edge[(j + 1) % 2] == triangle[(i + 1) % 3])
+                    | (edge[(j + 1) % 2] == triangle[(i + 2) % 3])
+                {
+                    return true;
                 }
-                if (half_plane(&[triangle[i], triangle[(i + 1) % 3]], &edge[(j+1) % 2]) < 0.) | (half_plane(&[triangle[(i + 2) % 3], triangle[i]], &edge[(j+1) % 2]) < 0.) {
-                    return false
-                } else {
-                    return true
-                }
+                return !((half_plane(&[triangle[i], triangle[(i + 1) % 3]], &edge[(j + 1) % 2])
+                    < 0.)
+                    | (half_plane(&[triangle[(i + 2) % 3], triangle[i]], &edge[(j + 1) % 2])
+                        < 0.));
             }
         }
     }
-    
+
     // 2. If one or two of the points is in the triangle => intersection
     if point_in_triangle(triangle, &edge[0]) {
         return true;
