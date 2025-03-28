@@ -1,3 +1,4 @@
+use cfd_rs_utils::control::OutputControl;
 use cfd_rs_utils::*;
 use errors::MeshError;
 use mesh::indices::*;
@@ -22,7 +23,7 @@ pub mod utils;
 pub fn advancing_front(
     mesh: &mut Modifiable2DMesh,
     element_size: f64,
-    step_output: bool,
+    output_control: OutputControl,
 ) -> Result<(), MeshError> {
     let mut first_cell = None;
 
@@ -45,13 +46,14 @@ pub fn advancing_front(
     refine_boundary(mesh, element_size);
 
     let mut i = 0;
-    if step_output {
+    if let OutputControl::Iteration(_) = output_control {
         fs::remove_dir_all("./output").unwrap();
         fs::create_dir("output").unwrap();
         mesh.0
             .export_vtk(format!("./output/advancing_{}.vtk", i).as_str())
             .expect("");
     }
+    
     loop {
         if front.is_empty() {
             break;
@@ -72,17 +74,11 @@ pub fn advancing_front(
 
         let mut base_edge = select_base_edge(mesh, &front);
         let first_edge = base_edge;
-        let he_len = mesh.0.he_len();
-        // println!("{:?}", mesh.0);
 
         let mut result;
 
         loop {
-            //println!("base edge: {:?} {:?} {:?} {:?}", base_edge, mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[0]), mesh.0.vertices(mesh.0.vertices_from_he(base_edge)[1]), mesh.0.he_to_parent()[base_edge]);
             result = new_element(mesh, &mut front, base_edge, element_size);
-            // if let Err(MeshError::NoElementCreatable(_)) = result {
-            //     return Err(MeshError::NoElementCreatable(base_edge));
-            // }
             if let Err(MeshError::NoElementCreatable(_)) = result {
                 base_edge = mesh.0.he_to_next_he()[base_edge];
                 if base_edge == first_edge {
@@ -94,7 +90,6 @@ pub fn advancing_front(
                 break;
             }
         }
-        //println!("mesh: {:?}", mesh);
 
         if let Ok(mut stack) = result {
             println!("Delaunay");
@@ -111,16 +106,24 @@ pub fn advancing_front(
 
         println!();
 
-        if step_output {
-            mesh.0
+        if let OutputControl::Iteration(step) = output_control {
+            if i % step == 0 {
+                mesh.0
                 .export_vtk(format!("./output/advancing_{}.vtk", i).as_str())
                 .expect("");
+            }
         }
 
         let check = mesh.0.check_mesh();
         if let Err(error) = check {
             panic!("{:?}", error)
         }
+    }
+    
+    if let OutputControl::Final = output_control {
+        mesh.0
+            .export_vtk(format!("./output/advancing_{}.vtk", i).as_str())
+            .expect("");
     }
 
     println!("------------------------------------------------");
