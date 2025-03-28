@@ -53,6 +53,10 @@ pub fn advancing_front(
             .export_vtk(format!("./output/advancing_{}.vtk", i).as_str())
             .expect("");
     }
+    if let OutputControl::Final = output_control {
+        fs::remove_dir_all("./output").unwrap();
+        fs::create_dir("output").unwrap();
+    }
     
     loop {
         if front.is_empty() {
