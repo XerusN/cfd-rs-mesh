@@ -269,50 +269,38 @@ pub fn node_suitability_check(
     base_edge: HalfEdgeIndex,
     considered_point: ConsideredPoint,
 ) -> f64 {
-    let tan_30 = (30. * f64::consts::PI / 180.).tan();
-
     let base_edge_vert = mesh.0.vertices_from_he(base_edge);
     let base_edge_vert = (
         mesh.0.vertices(base_edge_vert[0]),
         mesh.0.vertices(base_edge_vert[1]),
     );
-    let base_edge_vec = mesh.0.he_vector(base_edge);
     let point = considered_point.coordinates(&mesh.0);
+    
+    let mut tan_a = tan_alpha_suitability(&[point, base_edge_vert.0, base_edge_vert.1]);
+    tan_a = tan_a.min(tan_alpha_suitability(&[base_edge_vert.0, base_edge_vert.1, point]));
+    tan_a.min(tan_alpha_suitability(&[base_edge_vert.1, point, base_edge_vert.0]))
+}
 
+pub fn tan_alpha_suitability(points: &[Point2<f64>]) -> f64 {
+    
+    
+    let point = points[2];
+    let base_edge_vec = Vector2::new(points[1].x - points[0].x, points[1].y - points[0].y);
+    
     let t = (base_edge_vec.dot(&Vector2::new(
-        point.x - base_edge_vert.0.x,
-        point.y - base_edge_vert.0.y,
+        point.x - points[0].x,
+        point.y - points[0].y,
     )) / base_edge_vec.norm_squared())
     .abs();
     let theta = (t).max(t - 1.);
     let tan_a = Vector2::new(
-        point.x - (base_edge_vert.0.x + t * base_edge_vec.x),
-        point.y - (base_edge_vert.0.y + t * base_edge_vec.y),
+        point.x - (points[0].x + t * base_edge_vec.x),
+        point.y - (points[0].y + t * base_edge_vec.y),
     )
     .norm()
         / (theta * base_edge_vec.norm());
-    if tan_a < tan_30 {
-        return tan_a;
-    }
-    let tan_a_old = tan_a;
-
-    let t = (base_edge_vec.dot(&Vector2::new(
-        point.x - base_edge_vert.1.x,
-        point.y - base_edge_vert.1.y,
-    )) / base_edge_vec.norm_squared())
-    .abs();
-    let theta = (t).max(t - 1.);
-    let tan_a = Vector2::new(
-        point.x - (base_edge_vert.1.x - t * base_edge_vec.x),
-        point.y - (base_edge_vert.1.y - t * base_edge_vec.y),
-    )
-    .norm()
-        / (theta * base_edge_vec.norm());
-    if tan_a < tan_30 {
-        return tan_a;
-    }
-
-    tan_a.max(tan_a_old)
+    
+    tan_a
 }
 
 pub fn find_existing_candidates(
