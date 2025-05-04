@@ -57,7 +57,7 @@ pub fn advancing_front(
         fs::remove_dir_all("./output").unwrap();
         fs::create_dir("output").unwrap();
     }
-    
+
     loop {
         if front.is_empty() {
             break;
@@ -113,8 +113,8 @@ pub fn advancing_front(
         if let OutputControl::Iteration(step) = output_control {
             if i % step == 0 {
                 mesh.0
-                .export_vtk(format!("./output/advancing_{}.vtk", i).as_str())
-                .expect("");
+                    .export_vtk(format!("./output/advancing_{}.vtk", i).as_str())
+                    .expect("");
             }
         }
 
@@ -123,7 +123,7 @@ pub fn advancing_front(
             panic!("{:?}", error)
         }
     }
-    
+
     if let OutputControl::Final = output_control {
         mesh.0
             .export_vtk(format!("./output/advancing_{}.vtk", i).as_str())

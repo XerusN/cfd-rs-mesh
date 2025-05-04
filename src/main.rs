@@ -1,7 +1,7 @@
 use cfd_rs_utils::{
     boundary::*,
-    mesh::{indices::*, Modifiable2DMesh, *},
     control::*,
+    mesh::{indices::*, Modifiable2DMesh, *},
 };
 use nalgebra::Point2;
 use std::f64::consts::PI;

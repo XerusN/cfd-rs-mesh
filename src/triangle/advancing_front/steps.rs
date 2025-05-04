@@ -298,14 +298,12 @@ pub fn tan_alpha_suitability(points: &[Point2<f64>]) -> f64 {
         / base_edge_vec.norm_squared())
     .abs();
     let theta = (t).max(t - 1.);
-    let tan_a = Vector2::new(
+    Vector2::new(
         point.x - (points[0].x + t * base_edge_vec.x),
         point.y - (points[0].y + t * base_edge_vec.y),
     )
     .norm()
-        / (theta * base_edge_vec.norm());
-
-    tan_a
+        / (theta * base_edge_vec.norm())
 }
 
 pub fn find_existing_candidates(
@@ -444,8 +442,9 @@ pub fn add_element(
 
 pub fn clean_front(mesh: &Base2DMesh, front: &mut Vec<ParentIndex>) -> Vec<ParentIndex> {
     let stack = front
-        .clone().into_iter()
-        .filter(|&parent| !(mesh.vertices_from_parent(parent).len() > 3))
+        .clone()
+        .into_iter()
+        .filter(|&parent| (mesh.vertices_from_parent(parent).len() <= 3))
         .collect();
     front.retain(|&parent| mesh.vertices_from_parent(parent).len() > 3);
     stack
