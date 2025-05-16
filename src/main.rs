@@ -10,7 +10,7 @@ use triangle::advancing_front::*;
 pub mod triangle;
 
 fn simple_mesh() -> Modifiable2DMesh {
-    let parents = vec![Parent::Boundary(Boundary::NoSlip)];
+    let parents = vec![Parent::Boundary(Boundary(0))];
     let vertices = vec![
         Point2::new(0.0, 0.0),
         Point2::new(1.0, 0.0),
@@ -35,7 +35,7 @@ fn simple_mesh() -> Modifiable2DMesh {
 }
 
 fn circle_mesh() -> (Modifiable2DMesh, f64) {
-    let parents = vec![Parent::Boundary(Boundary::NoSlip)];
+    let parents = vec![Parent::Boundary(Boundary(0))];
     let n = 60;
     let mut vertices = vec![];
     let mut edge_to_vertices_and_parent = vec![];

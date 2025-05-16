@@ -5,7 +5,7 @@ use cfd_rs_utils::{
 };
 
 fn simple_mesh() -> Modifiable2DMesh {
-    let parents = vec![Parent::Boundary(Boundary::NoSlip)];
+    let parents = vec![Parent::Boundary(Boundary(0))];
     let vertices = vec![
         Point2::new(0.0, 0.0),
         Point2::new(1.0, 0.0),
