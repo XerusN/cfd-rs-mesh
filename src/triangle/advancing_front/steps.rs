@@ -56,7 +56,7 @@ pub fn new_element(
 ) -> Result<Vec<ParentIndex>, MeshError> {
     let ideal_nod;
     let mut valid_points = vec![];
-    let front_parent = mesh.0.he_to_parent()[base_edge];
+    let front_parent = mesh.0.he_to_parent()[base_edge].0;
     'ideal_node: {
         ideal_nod = ideal_node(mesh, base_edge, element_size);
         // println!("{:?}", ideal_nod);
@@ -394,7 +394,7 @@ pub fn add_element(
 
     // Double check this part
     if mesh.0.vertices_from_he(mesh.0.he_to_next_he()[base_edge])[1] == point_id {
-        let front_parent = mesh.0.he_to_parent()[base_edge];
+        let front_parent = mesh.0.he_to_parent()[base_edge].0;
         let next_point = mesh.0.vertices_from_he(mesh.0.he_to_next_he()[base_edge])[1];
         let new_parent;
         unsafe {
@@ -407,7 +407,7 @@ pub fn add_element(
         return Ok(clean_front(&mesh.0, front));
     }
     if mesh.0.vertices_from_he(mesh.0.he_to_prev_he()[base_edge])[0] == point_id {
-        let front_parent = mesh.0.he_to_parent()[base_edge];
+        let front_parent = mesh.0.he_to_parent()[base_edge].0;
         let next_point = mesh.0.vertices_from_he(mesh.0.he_to_prev_he()[base_edge])[0];
         let new_parent;
         unsafe {
@@ -421,7 +421,7 @@ pub fn add_element(
     }
 
     // Only remains the case where both edge have to be created toward an old point, right?
-    let front_parent = mesh.0.he_to_parent()[base_edge];
+    let front_parent = mesh.0.he_to_parent()[base_edge].0;
     let base_points = mesh.0.vertices_from_he(base_edge);
 
     // Relies on non-enforced behaviour of the trimming function! (old parent = parent from new he from vertices.0 to vertices.1)
@@ -430,7 +430,7 @@ pub fn add_element(
     unsafe {
         new_parent1 = mesh.trimming((point_id, base_points[0]), front_parent)?;
     }
-    let front_parent = mesh.0.he_to_parent()[mesh.0.he_to_next_he()[base_edge]];
+    let front_parent = mesh.0.he_to_parent()[mesh.0.he_to_next_he()[base_edge]].0;
     unsafe {
         new_parent2 = mesh.trimming((point_id, base_points[1]), front_parent)?;
     }

@@ -34,7 +34,7 @@ pub fn delaunay_check_and_swap(
         });
     }
 
-    for parent in mesh.0.neighbors_from_parent(stack_parent) {
+    for (parent, _) in mesh.0.neighbors_from_parent(stack_parent) {
         if mesh.0.vertices_from_parent(parent).len() != 3 {
             continue;
         }

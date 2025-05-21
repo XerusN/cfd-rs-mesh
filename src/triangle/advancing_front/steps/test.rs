@@ -1,8 +1,8 @@
 use super::*;
-use cfd_rs_utils::{boundary::Boundary, mesh::Parent};
+use cfd_rs_utils::mesh::{computational_mesh::BoundaryPatch, Parent};
 
 fn simple_mesh() -> Modifiable2DMesh {
-    let parents = vec![Parent::Boundary(Boundary(0))];
+    let parents = vec![Parent::Boundary];
     let vertices = vec![
         Point2::new(0.0, 0.0),
         Point2::new(1.0, 0.0),
@@ -11,16 +11,39 @@ fn simple_mesh() -> Modifiable2DMesh {
     ];
 
     let edge_to_vertices_and_parent = vec![
-        (VertexIndex(0), VertexIndex(1), ParentIndex(0)),
-        (VertexIndex(1), VertexIndex(2), ParentIndex(0)),
-        (VertexIndex(2), VertexIndex(3), ParentIndex(0)),
-        (VertexIndex(3), VertexIndex(0), ParentIndex(0)),
+        (
+            VertexIndex(0),
+            VertexIndex(1),
+            (ParentIndex(0), Some(BoundaryPatchIndex(0))),
+        ),
+        (
+            VertexIndex(1),
+            VertexIndex(2),
+            (ParentIndex(0), Some(BoundaryPatchIndex(0))),
+        ),
+        (
+            VertexIndex(2),
+            VertexIndex(3),
+            (ParentIndex(0), Some(BoundaryPatchIndex(0))),
+        ),
+        (
+            VertexIndex(3),
+            VertexIndex(0),
+            (ParentIndex(0), Some(BoundaryPatchIndex(0))),
+        ),
     ];
+
+    let boundaries = vec![BoundaryPatch::new("Test".to_string())];
 
     let mesh;
 
     unsafe {
-        mesh = Modifiable2DMesh::new_from_boundary(vertices, edge_to_vertices_and_parent, parents);
+        mesh = Modifiable2DMesh::new_from_boundary(
+            vertices,
+            edge_to_vertices_and_parent,
+            parents,
+            boundaries,
+        );
     }
 
     mesh

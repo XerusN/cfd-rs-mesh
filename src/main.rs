@@ -1,7 +1,6 @@
 use cfd_rs_utils::{
-    boundary::*,
     control::*,
-    mesh::{indices::*, Modifiable2DMesh, *},
+    mesh::{computational_mesh::BoundaryPatch, indices::*, Modifiable2DMesh, *},
 };
 use nalgebra::Point2;
 use std::f64::consts::PI;
@@ -10,7 +9,7 @@ use triangle::advancing_front::*;
 pub mod triangle;
 
 fn simple_mesh() -> Modifiable2DMesh {
-    let parents = vec![Parent::Boundary(Boundary(0))];
+    let parents = vec![Parent::Boundary];
     let vertices = vec![
         Point2::new(0.0, 0.0),
         Point2::new(1.0, 0.0),
@@ -19,23 +18,46 @@ fn simple_mesh() -> Modifiable2DMesh {
     ];
 
     let edge_to_vertices_and_parent = vec![
-        (VertexIndex(0), VertexIndex(1), ParentIndex(0)),
-        (VertexIndex(1), VertexIndex(2), ParentIndex(0)),
-        (VertexIndex(2), VertexIndex(3), ParentIndex(0)),
-        (VertexIndex(3), VertexIndex(0), ParentIndex(0)),
+        (
+            VertexIndex(0),
+            VertexIndex(1),
+            (ParentIndex(0), Some(BoundaryPatchIndex(0))),
+        ),
+        (
+            VertexIndex(1),
+            VertexIndex(2),
+            (ParentIndex(0), Some(BoundaryPatchIndex(0))),
+        ),
+        (
+            VertexIndex(2),
+            VertexIndex(3),
+            (ParentIndex(0), Some(BoundaryPatchIndex(0))),
+        ),
+        (
+            VertexIndex(3),
+            VertexIndex(0),
+            (ParentIndex(0), Some(BoundaryPatchIndex(0))),
+        ),
     ];
+
+    let boundaries = vec![BoundaryPatch::new("Test".to_string())];
 
     let mesh;
 
     unsafe {
-        mesh = Modifiable2DMesh::new_from_boundary(vertices, edge_to_vertices_and_parent, parents);
+        mesh = Modifiable2DMesh::new_from_boundary(
+            vertices,
+            edge_to_vertices_and_parent,
+            parents,
+            boundaries,
+        );
     }
 
     mesh
 }
 
 fn circle_mesh() -> (Modifiable2DMesh, f64) {
-    let parents = vec![Parent::Boundary(Boundary(0))];
+    let parents = vec![Parent::Boundary];
     let n = 60;
     let mut vertices = vec![];
     let mut edge_to_vertices_and_parent = vec![];
@@ -45,7 +67,7 @@ fn circle_mesh() -> (Modifiable2DMesh, f64) {
         edge_to_vertices_and_parent.push((
             VertexIndex(i),
             VertexIndex((i + 1) % n),
-            ParentIndex(0),
+            (ParentIndex(0), Some(BoundaryPatchIndex(0))),
         ));
     }
 
@@ -54,8 +76,15 @@ fn circle_mesh() -> (Modifiable2DMesh, f64) {
 
     let mesh;
 
+    let boundaries = vec![BoundaryPatch::new("Test".to_string())];
+
     unsafe {
-        mesh = Modifiable2DMesh::new_from_boundary(vertices, edge_to_vertices_and_parent, parents);
+        mesh = Modifiable2DMesh::new_from_boundary(
+            vertices,
+            edge_to_vertices_and_parent,
+            parents,
+            boundaries,
+        );
     }
 
     (mesh, element_size)
@@ -63,7 +92,7 @@ fn circle_mesh() -> (Modifiable2DMesh, f64) {
 
 fn main() {
     let mut mesh = simple_mesh();
-    let element_size = 0.01;
+    let element_size = 0.07;
     // let (mut mesh, element_size) = circle_mesh();
     advancing_front(&mut mesh, element_size, OutputControl::Final).unwrap()
 }
