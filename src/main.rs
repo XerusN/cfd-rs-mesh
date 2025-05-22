@@ -1,6 +1,6 @@
 use cfd_rs_utils::{
     control::*,
-    mesh::{computational_mesh::BoundaryPatch, indices::*, Modifiable2DMesh, *},
+    mesh::{computational_mesh::{BoundaryPatch, Computational2DMesh}, indices::*, Modifiable2DMesh, *},
 };
 use nalgebra::Point2;
 use std::f64::consts::PI;
@@ -92,7 +92,9 @@ fn circle_mesh() -> (Modifiable2DMesh, f64) {
 
 fn main() {
     let mut mesh = simple_mesh();
-    let element_size = 0.07;
+    let element_size = 0.5;
     // let (mut mesh, element_size) = circle_mesh();
-    advancing_front(&mut mesh, element_size, OutputControl::Final).unwrap()
+    advancing_front(&mut mesh, element_size, OutputControl::Final).unwrap();
+    println!("{:?}", mesh);
+    let mesh = Computational2DMesh::new_from_he(mesh.0);
 }

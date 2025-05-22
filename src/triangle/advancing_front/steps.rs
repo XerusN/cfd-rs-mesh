@@ -401,6 +401,7 @@ pub fn add_element(
             new_parent = mesh.trimming(
                 (mesh.0.vertices_from_he(base_edge)[0], next_point),
                 front_parent,
+                None,
             )?;
         }
         front.push(new_parent);
@@ -414,6 +415,7 @@ pub fn add_element(
             new_parent = mesh.trimming(
                 (mesh.0.vertices_from_he(base_edge)[1], next_point),
                 front_parent,
+                None
             )?;
         }
         front.push(new_parent);
@@ -428,11 +430,11 @@ pub fn add_element(
     let new_parent1;
     let new_parent2;
     unsafe {
-        new_parent1 = mesh.trimming((point_id, base_points[0]), front_parent)?;
+        new_parent1 = mesh.trimming((point_id, base_points[0]), front_parent, None)?;
     }
     let front_parent = mesh.0.he_to_parent()[mesh.0.he_to_next_he()[base_edge]].0;
     unsafe {
-        new_parent2 = mesh.trimming((point_id, base_points[1]), front_parent)?;
+        new_parent2 = mesh.trimming((point_id, base_points[1]), front_parent, None)?;
     }
     front.push(new_parent1);
     front.push(new_parent2);
