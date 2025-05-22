@@ -415,7 +415,7 @@ pub fn add_element(
             new_parent = mesh.trimming(
                 (mesh.0.vertices_from_he(base_edge)[1], next_point),
                 front_parent,
-                None
+                None,
             )?;
         }
         front.push(new_parent);

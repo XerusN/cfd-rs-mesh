@@ -1,6 +1,10 @@
 use cfd_rs_utils::{
     control::*,
-    mesh::{computational_mesh::{BoundaryPatch, Computational2DMesh}, indices::*, Modifiable2DMesh, *},
+    mesh::{
+        computational_mesh::{BoundaryPatch, Computational2DMesh},
+        indices::*,
+        Modifiable2DMesh, *,
+    },
 };
 use nalgebra::Point2;
 use std::f64::consts::PI;
